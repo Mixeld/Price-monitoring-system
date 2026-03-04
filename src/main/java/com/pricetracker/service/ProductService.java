@@ -5,13 +5,12 @@ import com.pricetracker.entity.Product;
 import com.pricetracker.mapper.ProductMapper;
 import com.pricetracker.repository.ProductRepository;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
- * Сервис, реализующий бизнес-логику работы с товарами.
- * Класс final для предотвращения наследования (DesignForExtension).
+ * Сервис, реализующий бизнес-логику работы с товарами. Класс final для предотвращения наследования
+ * (DesignForExtension).
  */
 @Service
 @RequiredArgsConstructor
@@ -54,10 +53,12 @@ public final class ProductService {
     } else {
       products = productRepository.findAll();
     }
-    // Исправленная строка возврата:
+
+    // ИСПРАВЛЕНО: .toList() вместо Collectors.toList()
+    // Это удовлетворяет SonarQube (java:S6204) в Java 17+
     return products.stream()
         .map(productMapper::toDto)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   /**
