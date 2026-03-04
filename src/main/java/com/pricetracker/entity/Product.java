@@ -1,45 +1,33 @@
-package com.pricetracker.entity;
-
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import java.math.BigDecimal;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import java.util.List;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
-/**
- * Сущность товара для сохранения в БД.
- */
 @Entity
-@Table(name = "products")
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Product {
 
-  /**
-   * Уникальный идентификатор.
-   */
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  /**
-   * Название товара.
-   */
   private String name;
+  private String description;
 
-  /**
-   * Текущая цена.
-   */
-  private BigDecimal currentPrice;
+  @ManyToOne
+  @JoinColumn(name = "category_id")
+  private Category category;
 
-  /**
-   * Категория товара.
-   */
-  private String category;
+  @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
+  private List<PricrHistory> pricrHistoryList;
+
+  @ManyToMany(mappedBy = "trackedProducts")
+  private List<User> subsribeUsers;
 }
-
