@@ -1,22 +1,62 @@
 package com.pricetracker.controller;
+
 import com.pricetracker.dto.ProductDto;
 import com.pricetracker.service.ProductService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST контроллер для управления товарами. Предоставляет API endpoints.
+ */
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
-public class ProductController {
-    private final ProductService productService;
+public final class ProductController {
 
-    @GetMapping("/{id}")
-    public ProductDto getProductById(@PathVariable Long id) { return productService.getProductById(id); }
+  /**
+   * Сервис товаров.
+   */
+  private final ProductService productService;
 
-    @GetMapping
-    public List<ProductDto> getProducts(@RequestParam(required = false) String category) { return productService.getProducts(category); }
+  /**
+   * GET запрос для получения товара по ID.
+   *
+   * @param id идентификатор товара из пути
+   * @return найденный товар
+   */
+  @GetMapping("/{id}")
+  public ProductDto getProductById(@PathVariable final Long id) {
+    return productService.getProductById(id);
+  }
 
-    @PostMapping
-    public ProductDto createProduct(@RequestBody ProductDto productDto) { return productService.saveProduct(productDto); }
+  /**
+   * GET запрос для получения списка товаров. Поддерживает фильтрацию по категории.
+   *
+   * @param category категория (опционально)
+   * @return список товаров
+   */
+  @GetMapping
+  public List<ProductDto> getProducts(
+      @RequestParam(required = false) final String category) {
+    return productService.getProducts(category);
+  }
+
+  /**
+   * POST запрос для создания товара.
+   *
+   * @param productDto тело запроса с данными
+   * @return созданный товар
+   */
+  @PostMapping
+  public ProductDto createProduct(
+      @RequestBody final ProductDto productDto) {
+    return productService.saveProduct(productDto);
+  }
 }

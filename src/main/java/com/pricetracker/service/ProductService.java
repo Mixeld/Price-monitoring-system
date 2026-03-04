@@ -1,28 +1,72 @@
 package com.pricetracker.service;
+
 import com.pricetracker.dto.ProductDto;
 import com.pricetracker.entity.Product;
 import com.pricetracker.mapper.ProductMapper;
 import com.pricetracker.repository.ProductRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+/**
+ * Сервис, реализующий бизнес-логику работы с товарами. Класс final для предотвращения наследования
+ * (DesignForExtension).
+ */
 @Service
 @RequiredArgsConstructor
-public class ProductService {
-    private final ProductRepository productRepository;
-    private final ProductMapper productMapper;
+public final class ProductService {
 
-    public ProductDto getProductById(Long id) {
-        return productRepository.findById(id).map(productMapper::toDto).orElseThrow(() -> new RuntimeException("Product not found: " + id));
+  /**
+   * Репозиторий доступа к БД.
+   */
+  private final ProductRepository productRepository;
+  /**
+   * Маппер объектов.
+   */
+  private final ProductMapper productMapper;
+
+  /**
+   * Получить товар по ID.
+   *
+   * @param id идентификатор товара
+   * @return DTO товара
+   * @throws RuntimeException если товар не найден
+   */
+  public ProductDto getProductById(final Long id) {
+    return productRepository.findById(id)
+        .map(productMapper::toDto)
+        .orElseThrow(() -> new RuntimeException(
+            "Product not found: " + id));
+  }
+
+  /**
+   * Получить список товаров с фильтрацией.
+   *
+   * @param category категория для фильтрации (может быть null)
+   * @return список DTO
+   */
+  public List<ProductDto> getProducts(final String category) {
+    List<Product> products;
+    if (category != null && !category.isBlank()) {
+      products = productRepository.findByCategory(category);
+    } else {
+      products = productRepository.findAll();
     }
-    public List<ProductDto> getProducts(String category) {
-        List<Product> products = (category != null && !category.isBlank()) ? productRepository.findByCategory(category) : productRepository.findAll();
-        return products.stream().map(productMapper::toDto).collect(Collectors.toList());
-    }
-    public ProductDto saveProduct(ProductDto dto) {
-        Product product = productMapper.toEntity(dto);
-        return productMapper.toDto(productRepository.save(product));
-    }
+    return products.stream()
+        .map(productMapper::toDto)
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Сохранить новый товар.
+   *
+   * @param dto данные сохраняемого товара
+   * @return сохраненный товар в виде DTO
+   */
+  public ProductDto saveProduct(final ProductDto dto) {
+    Product product = productMapper.toEntity(dto);
+    Product saved = productRepository.save(product);
+    return productMapper.toDto(saved);
+  }
 }

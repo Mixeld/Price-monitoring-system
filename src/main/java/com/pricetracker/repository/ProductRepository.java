@@ -1,10 +1,23 @@
 package com.pricetracker.repository;
+
 import com.pricetracker.entity.Product;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import java.util.List;
 
+/**
+ * Репозиторий для работы с таблицей товаров.
+ */
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
-    List<Product> findByCategory(String category);
+
+  /**
+   * Найти товары по категории.
+   *
+   * @param category название категории
+   * @return список найденных товаров
+   */
+  List<Product> findByCategory(String category);
 }
+
+
