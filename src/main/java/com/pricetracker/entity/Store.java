@@ -3,6 +3,7 @@ package com.pricetracker.entity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id; // <--- ДОБАВЛЕНО
 import lombok.Data;
 
 @Entity
@@ -14,5 +15,5 @@ public class Store {
   private Long id;
 
   private String name;
-  private String wedsiteUrl;
+  private String websiteUrl; // Исправил опечатку (было 'wedsiteUrl')
 }

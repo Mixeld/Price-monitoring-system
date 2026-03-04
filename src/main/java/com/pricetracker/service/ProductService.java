@@ -1,75 +1,65 @@
 package com.pricetracker.service;
 
 import com.pricetracker.dto.ProductDto;
+import com.pricetracker.entity.Category;
 import com.pricetracker.entity.Product;
 import com.pricetracker.mapper.ProductMapper;
+import com.pricetracker.repository.CategoryRepository;
 import com.pricetracker.repository.ProductRepository;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Сервис, реализующий бизнес-логику работы с товарами. Класс final для предотвращения наследования
- * (DesignForExtension).
- */
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
-public final class ProductService {
+public class ProductService {
 
-  /**
-   * Репозиторий доступа к БД.
-   */
   private final ProductRepository productRepository;
-
-  /**
-   * Маппер объектов.
-   */
+  private final CategoryRepository categoryRepository; // <--- ДОБАВИЛИ
   private final ProductMapper productMapper;
 
-  /**
-   * Получить товар по ID.
-   *
-   * @param id идентификатор товара
-   * @return DTO товара
-   * @throws RuntimeException если товар не найден
-   */
-  public ProductDto getProductById(final Long id) {
+  public ProductDto getProductById(Long id) {
     return productRepository.findById(id)
         .map(productMapper::toDto)
-        .orElseThrow(() -> new RuntimeException(
-            "Product not found: " + id));
+        .orElseThrow(() -> new RuntimeException("Product not found"));
   }
 
-  /**
-   * Получить список товаров с фильтрацией.
-   *
-   * @param category категория для фильтрации (может быть null)
-   * @return список DTO
-   */
-  public List<ProductDto> getProducts(final String category) {
-    List<Product> products;
-    if (category != null && !category.isBlank()) {
-      products = productRepository.findByCategory(category);
-    } else {
-      products = productRepository.findAll();
+  public List<ProductDto> getProducts(String categoryName) {
+    // Если категория передана, ищем товары по ней
+    if (categoryName != null && !categoryName.isBlank()) {
+      return productRepository.findByCategoryName(categoryName) // <--- НУЖНО ДОБАВИТЬ В РЕПОЗИТОРИЙ
+          .stream()
+          .map(productMapper::toDto)
+          .toList();
     }
-
-    // ИСПРАВЛЕНО: .toList() вместо Collectors.toList()
-    // Это удовлетворяет SonarQube (java:S6204) в Java 17+
-    return products.stream()
+    // Иначе возвращаем всё
+    return productRepository.findAll().stream()
         .map(productMapper::toDto)
         .toList();
   }
 
-  /**
-   * Сохранить новый товар.
-   *
-   * @param dto данные сохраняемого товара
-   * @return сохраненный товар в виде DTO
-   */
-  public ProductDto saveProduct(final ProductDto dto) {
+  @Transactional // Чтобы создание категории и товара было одной операцией
+  public ProductDto saveProduct(ProductDto dto) {
     Product product = productMapper.toEntity(dto);
-    Product saved = productRepository.save(product);
-    return productMapper.toDto(saved);
+
+    // --- ЛОГИКА С КАТЕГОРИЯМИ ---
+    if (dto.category() != null) {
+      // Ищем категорию в базе по имени
+      Category category = categoryRepository.findByName(dto.category())
+          .orElseGet(() -> {
+            // Если не нашли - создаем новую
+            Category newCat = new Category();
+            newCat.setName(dto.category());
+            return categoryRepository.save(newCat);
+          });
+
+      // Привязываем найденную/созданную категорию к товару
+      product.setCategory(category);
+    }
+
+    Product savedProduct = productRepository.save(product);
+    return productMapper.toDto(savedProduct);
   }
 }

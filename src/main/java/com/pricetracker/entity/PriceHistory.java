@@ -5,21 +5,22 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import lombok.Data;
 
 @Entity
 @Data
 public class PriceHistory {
+
   @Id
-  @GeneratedValue (strategy = GenerationType.IDENTITY)
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @ManyToMany
-  @JoinColumn (name = "product_id")
+  @ManyToOne
+  @JoinColumn(name = "product_id")
   private Product product;
 
-  @ManyToMany
-  @JoinColumn (name = "store_id")
+  @ManyToOne
+  @JoinColumn(name = "store_id")
   private Store strore;
 }
