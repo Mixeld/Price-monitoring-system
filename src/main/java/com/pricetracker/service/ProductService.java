@@ -10,8 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
- * Сервис, реализующий бизнес-логику работы с товарами. Класс final для предотвращения наследования
- * (DesignForExtension).
+ * Сервис, реализующий бизнес-логику работы с товарами.
+ * Класс final для предотвращения наследования (DesignForExtension).
  */
 @Service
 @RequiredArgsConstructor
@@ -21,6 +21,7 @@ public final class ProductService {
    * Репозиторий доступа к БД.
    */
   private final ProductRepository productRepository;
+
   /**
    * Маппер объектов.
    */
@@ -53,6 +54,7 @@ public final class ProductService {
     } else {
       products = productRepository.findAll();
     }
+    // Исправленная строка возврата:
     return products.stream()
         .map(productMapper::toDto)
         .collect(Collectors.toList());
