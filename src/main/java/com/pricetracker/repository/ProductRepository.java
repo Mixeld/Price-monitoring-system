@@ -6,18 +6,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * Репозиторий для работы с таблицей товаров.
+ * Репозиторий для работы с товарами.
  */
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
   /**
-   * Найти товары по категории.
+   * Найти товары, у которых категория имеет указанное имя. Spring Data JPA: Product -> Category ->
+   * name.
    *
-   * @param category название категории
+   * @param categoryName название категории (например, "Electronics")
    * @return список найденных товаров
    */
-  List<Product> findByCategory(String category);
+  List<Product> findByCategoryName(String categoryName);
 }
-
-
