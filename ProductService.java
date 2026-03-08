@@ -1,75 +1,106 @@
 package com.pricetracker.service;
 
 import com.pricetracker.dto.ProductDto;
+import com.pricetracker.entity.Category;
 import com.pricetracker.entity.Product;
 import com.pricetracker.mapper.ProductMapper;
+import com.pricetracker.repository.CategoryRepository;
 import com.pricetracker.repository.ProductRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Сервис, реализующий бизнес-логику работы с товарами.
- * Класс final для предотвращения наследования (DesignForExtension).
+ * Сервис для бизнес-логики работы с товарами.
  */
 @Service
 @RequiredArgsConstructor
-public final class ProductService {
+public class ProductService {
 
-  /**
-   * Репозиторий доступа к БД.
-   */
   private final ProductRepository productRepository;
-
-  /**
-   * Маппер объектов.
-   */
+  private final CategoryRepository categoryRepository;
   private final ProductMapper productMapper;
 
   /**
    * Получить товар по ID.
-   *
-   * @param id идентификатор товара
-   * @return DTO товара
-   * @throws RuntimeException если товар не найден
    */
   public ProductDto getProductById(final Long id) {
     return productRepository.findById(id)
         .map(productMapper::toDto)
-        .orElseThrow(() -> new RuntimeException(
-            "Product not found: " + id));
+        .orElseThrow(() -> new RuntimeException("Product not found: " + id));
   }
 
   /**
-   * Получить список товаров с фильтрацией.
-   *
-   * @param category категория для фильтрации (может быть null)
-   * @return список DTO
+   * Получить все товары или отфильтровать по категории.
    */
-  public List<ProductDto> getProducts(final String category) {
-    List<Product> products;
-    if (category != null && !category.isBlank()) {
-      products = productRepository.findByCategory(category);
-    } else {
-      products = productRepository.findAll();
+  public List<ProductDto> getProducts(final String categoryName) {
+    if (categoryName != null && !categoryName.isBlank()) {
+      return productRepository.findByCategoryName(categoryName)
+          .stream()
+          .map(productMapper::toDto)
+          .toList();
     }
-
-    // ИСПРАВЛЕНО: .toList() вместо Collectors.toList()
-    // Это удовлетворяет SonarQube (java:S6204) в Java 17+
-    return products.stream()
+    return productRepository.findAll().stream()
         .map(productMapper::toDto)
         .toList();
   }
 
   /**
-   * Сохранить новый товар.
-   *
-   * @param dto данные сохраняемого товара
-   * @return сохраненный товар в виде DTO
+   * Сохранить новый товар (с проверкой категории).
    */
+  @Transactional
   public ProductDto saveProduct(final ProductDto dto) {
     Product product = productMapper.toEntity(dto);
-    Product saved = productRepository.save(product);
-    return productMapper.toDto(saved);
+
+    if (dto.category() != null) {
+      Category category = categoryRepository.findByName(dto.category())
+          .orElseGet(() -> {
+            Category newCat = new Category();
+            newCat.setName(dto.category());
+            return categoryRepository.save(newCat);
+          });
+      product.setCategory(category);
+    }
+
+    Product savedProduct = productRepository.save(product);
+    return productMapper.toDto(savedProduct);
+  }
+
+  /**
+   * Обновить существующий товар.
+   */
+  @Transactional
+  public ProductDto updateProduct(final Long id, final ProductDto dto) {
+    Product product = productRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("Product not found: " + id));
+
+    // Обновляем простые поля
+    product.setName(dto.name());
+    product.setCurrentPrice(dto.price());
+
+    // Обновляем категорию (ищем или создаем)
+    if (dto.category() != null) {
+      Category category = categoryRepository.findByName(dto.category())
+          .orElseGet(() -> {
+            Category newCat = new Category();
+            newCat.setName(dto.category());
+            return categoryRepository.save(newCat);
+          });
+      product.setCategory(category);
+    }
+
+    Product updatedProduct = productRepository.save(product);
+    return productMapper.toDto(updatedProduct);
+  }
+
+  /**
+   * Удалить товар по ID.
+   */
+  public void deleteProduct(final Long id) {
+    if (!productRepository.existsById(id)) {
+      throw new RuntimeException("Product not found: " + id);
+    }
+    productRepository.deleteById(id);
   }
 }
