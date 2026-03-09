@@ -2,6 +2,7 @@ package com.pricetracker.entity;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,21 +32,24 @@ public class Product {
 
   private String name;
 
+  private BigDecimal currentPrice;
+
 
   private String description;
-
-  private BigDecimal currentPrice;
 
 
   @ManyToOne
   @JoinColumn(name = "category_id")
   private Category category;
 
-
-  @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
+  @OneToMany(
+      mappedBy = "product",
+      cascade = CascadeType.ALL,
+      fetch = FetchType.LAZY
+  )
   private List<PriceHistory> priceHistoryList = new ArrayList<>();
 
 
-  @ManyToMany(mappedBy = "trackedProducts")
+  @ManyToMany(mappedBy = "trackedProducts", fetch = FetchType.LAZY)
   private List<User> subscribedUsers = new ArrayList<>();
 }

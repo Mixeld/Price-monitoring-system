@@ -14,5 +14,4 @@ public class PriceTrackerApplication {
     SpringApplication.run(PriceTrackerApplication.class, args);
 
   }
-
 }
