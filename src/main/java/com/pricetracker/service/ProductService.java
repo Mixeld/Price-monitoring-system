@@ -6,6 +6,7 @@ import com.pricetracker.entity.Product;
 import com.pricetracker.mapper.ProductMapper;
 import com.pricetracker.repository.CategoryRepository;
 import com.pricetracker.repository.ProductRepository;
+import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,17 +15,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class ProductService {
+public final class ProductService {
+
 
   private final ProductRepository productRepository;
+
   private final CategoryRepository categoryRepository;
+
   private final ProductMapper productMapper;
 
 
   public ProductDto getProductById(final Long id) {
     return productRepository.findById(id)
         .map(productMapper::toDto)
-        .orElseThrow(() -> new RuntimeException("Product not found: " + id));
+        .orElseThrow(() -> new EntityNotFoundException(
+            "Product not found with id: " + id));
   }
 
   public List<ProductDto> getProducts(final String categoryName) {
@@ -38,7 +43,6 @@ public class ProductService {
         .map(productMapper::toDto)
         .toList();
   }
-
 
   @Transactional
   public ProductDto saveProduct(final ProductDto dto) {
@@ -58,11 +62,11 @@ public class ProductService {
     return productMapper.toDto(savedProduct);
   }
 
-
   @Transactional
   public ProductDto updateProduct(final Long id, final ProductDto dto) {
     Product product = productRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Product not found: " + id));
+        .orElseThrow(() -> new EntityNotFoundException(
+            "Product not found with id: " + id));
 
     // Обновляем простые поля
     product.setName(dto.name());
@@ -83,10 +87,11 @@ public class ProductService {
     return productMapper.toDto(updatedProduct);
   }
 
-
+  @Transactional
   public void deleteProduct(final Long id) {
     if (!productRepository.existsById(id)) {
-      throw new RuntimeException("Product not found: " + id);
+      throw new EntityNotFoundException(
+          "Cannot delete. Product not found with id: " + id);
     }
     productRepository.deleteById(id);
   }
