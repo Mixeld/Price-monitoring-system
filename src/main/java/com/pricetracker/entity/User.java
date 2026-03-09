@@ -1,6 +1,7 @@
 package com.pricetracker.entity;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -15,9 +16,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Сущность пользователя приложения.
- */
+
 @Entity
 @Table(name = "app_users")
 @Getter
@@ -26,27 +25,19 @@ import lombok.Setter;
 @AllArgsConstructor
 public class User {
 
-  /**
-   * Уникальный идентификатор пользователя.
-   */
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  /**
-   * Имя пользователя (логин).
-   */
+
   private String username;
 
-  /**
-   * Электронная почта.
-   */
+
   private String email;
 
-  /**
-   * Список отслеживаемых товаров. Связь ManyToMany: один юзер может следить за многими товарами.
-   */
-  @ManyToMany
+
+  @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(
       name = "user_subscriptions",
       joinColumns = @JoinColumn(name = "user_id"),
