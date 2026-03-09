@@ -9,19 +9,19 @@ import com.pricetracker.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public final class ProductService {
 
 
   private final ProductRepository productRepository;
-
   private final CategoryRepository categoryRepository;
-
   private final ProductMapper productMapper;
 
 
@@ -33,13 +33,19 @@ public final class ProductService {
   }
 
   public List<ProductDto> getProducts(final String categoryName) {
+    List<Product> products;
+
     if (categoryName != null && !categoryName.isBlank()) {
-      return productRepository.findByCategoryName(categoryName)
-          .stream()
-          .map(productMapper::toDto)
-          .toList();
+      // Используем метод с @EntityGraph для загрузки категорий одним запросом
+      products = productRepository.findByCategoryName(categoryName);
+      log.info("Загружено {} продуктов с категориями (используя EntityGraph)", products.size());
+    } else {
+      // Используем переопределенный findAll с @EntityGraph
+      products = productRepository.findAll();
+      log.info("Загружено {} всех продуктов с категориями (используя EntityGraph)", products.size());
     }
-    return productRepository.findAll().stream()
+
+    return products.stream()
         .map(productMapper::toDto)
         .toList();
   }
@@ -49,12 +55,7 @@ public final class ProductService {
     Product product = productMapper.toEntity(dto);
 
     if (dto.category() != null) {
-      Category category = categoryRepository.findByName(dto.category())
-          .orElseGet(() -> {
-            Category newCat = new Category();
-            newCat.setName(dto.category());
-            return categoryRepository.save(newCat);
-          });
+      Category category = findOrCreateCategory(dto.category());
       product.setCategory(category);
     }
 
@@ -68,23 +69,17 @@ public final class ProductService {
         .orElseThrow(() -> new EntityNotFoundException(
             "Product not found with id: " + id));
 
-    // Обновляем простые поля
     product.setName(dto.name());
     product.setCurrentPrice(dto.price());
 
-    // Обновляем категорию (ищем или создаем)
     if (dto.category() != null) {
-      Category category = categoryRepository.findByName(dto.category())
-          .orElseGet(() -> {
-            Category newCat = new Category();
-            newCat.setName(dto.category());
-            return categoryRepository.save(newCat);
-          });
+      Category category = findOrCreateCategory(dto.category());
       product.setCategory(category);
+    } else {
+      product.setCategory(null);
     }
 
-    Product updatedProduct = productRepository.save(product);
-    return productMapper.toDto(updatedProduct);
+    return productMapper.toDto(product); // save не нужен, т.к. внутри транзакции
   }
 
   @Transactional
@@ -94,5 +89,14 @@ public final class ProductService {
           "Cannot delete. Product not found with id: " + id);
     }
     productRepository.deleteById(id);
+  }
+
+  private Category findOrCreateCategory(String categoryName) {
+    return categoryRepository.findByName(categoryName)
+        .orElseGet(() -> {
+          Category newCat = new Category();
+          newCat.setName(categoryName);
+          return categoryRepository.save(newCat);
+        });
   }
 }
