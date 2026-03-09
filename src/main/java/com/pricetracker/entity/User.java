@@ -26,26 +26,18 @@ import lombok.Setter;
 @AllArgsConstructor
 public class User {
 
-  /**
-   * Уникальный идентификатор пользователя.
-   */
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  /**
-   * Имя пользователя (логин).
-   */
+
   private String username;
 
-  /**
-   * Электронная почта.
-   */
+
   private String email;
 
-  /**
-   * Список отслеживаемых товаров. Связь ManyToMany: один юзер может следить за многими товарами.
-   */
+
   @ManyToMany
   @JoinTable(
       name = "user_subscriptions",

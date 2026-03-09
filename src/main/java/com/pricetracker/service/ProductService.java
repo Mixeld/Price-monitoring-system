@@ -11,9 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Сервис для бизнес-логики работы с товарами.
- */
+
 @Service
 @RequiredArgsConstructor
 public class ProductService {
@@ -22,18 +20,13 @@ public class ProductService {
   private final CategoryRepository categoryRepository;
   private final ProductMapper productMapper;
 
-  /**
-   * Получить товар по ID.
-   */
+
   public ProductDto getProductById(final Long id) {
     return productRepository.findById(id)
         .map(productMapper::toDto)
         .orElseThrow(() -> new RuntimeException("Product not found: " + id));
   }
 
-  /**
-   * Получить все товары или отфильтровать по категории.
-   */
   public List<ProductDto> getProducts(final String categoryName) {
     if (categoryName != null && !categoryName.isBlank()) {
       return productRepository.findByCategoryName(categoryName)
@@ -46,9 +39,7 @@ public class ProductService {
         .toList();
   }
 
-  /**
-   * Сохранить новый товар (с проверкой категории).
-   */
+
   @Transactional
   public ProductDto saveProduct(final ProductDto dto) {
     Product product = productMapper.toEntity(dto);
@@ -67,9 +58,7 @@ public class ProductService {
     return productMapper.toDto(savedProduct);
   }
 
-  /**
-   * Обновить существующий товар.
-   */
+
   @Transactional
   public ProductDto updateProduct(final Long id, final ProductDto dto) {
     Product product = productRepository.findById(id)
@@ -94,9 +83,7 @@ public class ProductService {
     return productMapper.toDto(updatedProduct);
   }
 
-  /**
-   * Удалить товар по ID.
-   */
+
   public void deleteProduct(final Long id) {
     if (!productRepository.existsById(id)) {
       throw new RuntimeException("Product not found: " + id);

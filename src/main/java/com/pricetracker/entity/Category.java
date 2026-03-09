@@ -14,9 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Сущность категории товаров.
- */
+
 @Entity
 @Table(name = "categories")
 @Getter
@@ -25,24 +23,15 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Category {
 
-  /**
-   * Уникальный идентификатор категории.
-   */
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  /**
-   * Название категории (например, "Электроника"). В базе данных это поле будет уникальным (можно
-   * добавить @Column(unique = true)).
-   */
+
   private String name;
 
-  /**
-   * Список товаров в этой категории. mappedBy = "category" означает, что связь управляется полем
-   * 'category' в классе Product. cascade = CascadeType.ALL означает, что если мы удалим категорию,
-   * удалятся и все товары (будьте осторожны!).
-   */
+
   @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
   private List<Product> products = new ArrayList<>();
 }

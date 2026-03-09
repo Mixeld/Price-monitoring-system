@@ -8,9 +8,6 @@ import org.springframework.stereotype.Component;
 @Component
 public final class ProductMapper {
 
-  /**
-   * Преобразует сущность в DTO.
-   */
   public ProductDto toDto(final Product product) {
     if (product == null) {
       return null;
@@ -30,9 +27,7 @@ public final class ProductMapper {
     );
   }
 
-  /**
-   * Преобразует DTO в сущность.
-   */
+
   public Product toEntity(final ProductDto dto) {
     if (dto == null) {
       return null;
