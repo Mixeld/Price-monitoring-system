@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="10.12.4">
+<file name="/home/Mixeld/IdeaProjects/pricemonitor/src/main/java/com/pricetracker/dto/ProductDto.java">
+</file>
+<file name="/home/Mixeld/IdeaProjects/pricemonitor/src/main/java/com/pricetracker/service/ProductService.java">
+</file>
+<file name="/home/Mixeld/IdeaProjects/pricemonitor/src/main/java/com/pricetracker/mapper/ProductMapper.java">
+</file>
+<file name="/home/Mixeld/IdeaProjects/pricemonitor/src/main/java/com/pricetracker/entity/User.java">
+</file>
+<file name="/home/Mixeld/IdeaProjects/pricemonitor/src/main/java/com/pricetracker/entity/Product.java">
+</file>
+<file name="/home/Mixeld/IdeaProjects/pricemonitor/src/main/java/com/pricetracker/entity/Category.java">
+</file>
+<file name="/home/Mixeld/IdeaProjects/pricemonitor/src/main/java/com/pricetracker/entity/Store.java">
+</file>
+<file name="/home/Mixeld/IdeaProjects/pricemonitor/src/main/java/com/pricetracker/entity/PriceHistory.java">
+</file>
+<file name="/home/Mixeld/IdeaProjects/pricemonitor/src/main/java/com/pricetracker/controller/ProductController.java">
+</file>
+<file name="/home/Mixeld/IdeaProjects/pricemonitor/src/main/java/com/pricetracker/repository/ProductRepository.java">
+</file>
+<file name="/home/Mixeld/IdeaProjects/pricemonitor/src/main/java/com/pricetracker/repository/CategoryRepository.java">
+</file>
+<file name="/home/Mixeld/IdeaProjects/pricemonitor/src/main/java/com/pricetracker/PriceTrackerApplication.java">
+</file>
+<file name="/home/Mixeld/IdeaProjects/pricemonitor/src/main/resources/application.properties">
+</file>
+</checkstyle>
