@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public final class ProductService {
+public class ProductService {
 
 
   private final ProductRepository productRepository;
