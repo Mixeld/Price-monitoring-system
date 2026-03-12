@@ -13,7 +13,7 @@ public final class ProductMapper {
       return null;
     }
 
-    // --- ИСПРАВЛЕНИЕ: Получаем имя категории из объекта Category ---
+
     String categoryName = null;
     if (product.getCategory() != null) {
       categoryName = product.getCategory().getName();
@@ -22,8 +22,8 @@ public final class ProductMapper {
     return new ProductDto(
         product.getId(),
         product.getName(),
-        product.getCurrentPrice(), // Если поле currentPrice есть в Product
-        categoryName               // Передаем строку
+        product.getCurrentPrice(),
+        categoryName
     );
   }
 
@@ -37,7 +37,7 @@ public final class ProductMapper {
     product.setName(dto.name());
     product.setCurrentPrice(dto.price());
 
-    // (Это временное решение, лучше искать категорию в БД по ID или имени)
+
     if (dto.category() != null) {
       Category category = new Category();
       category.setName(dto.category());
