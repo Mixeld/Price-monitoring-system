@@ -13,17 +13,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public final class ProductService {
-
+public class ProductService {
 
   private final ProductRepository productRepository;
   private final CategoryRepository categoryRepository;
   private final ProductMapper productMapper;
-
 
   public ProductDto getProductById(final Long id) {
     return productRepository.findById(id)

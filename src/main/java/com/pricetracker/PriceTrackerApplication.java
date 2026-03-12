@@ -7,9 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class PriceTrackerApplication {
 
   public PriceTrackerApplication() {
-/*
-*
-    */
+
   }
 
   public static void main(final String[] args) {
