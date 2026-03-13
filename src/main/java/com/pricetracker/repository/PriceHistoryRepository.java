@@ -59,5 +59,4 @@ public interface PriceHistoryRepository extends JpaRepository<PriceHistory, Long
   // Удаление всех записей для продукта
   void deleteByProductId(Long productId);
 
-  List<PriceHistory> findByStoreId(Long id);
 }

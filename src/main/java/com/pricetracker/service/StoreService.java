@@ -106,7 +106,8 @@ public class StoreService {
         .orElseThrow(() -> new EntityNotFoundException("Store not found with id: " + id));
 
     // Проверка, есть ли у магазина записи в истории цен
-    List<PriceHistory> priceHistories = priceHistoryRepository.findByStoreId(id);
+    List<PriceHistory> priceHistories = priceHistoryRepository.findByStoreIdOrderByDateRecordedDesc(id);
+
     if (!priceHistories.isEmpty()) {
       int historyCount = priceHistories.size();
       log.warn("Cannot delete store with id: {} because it has {} price history records",
