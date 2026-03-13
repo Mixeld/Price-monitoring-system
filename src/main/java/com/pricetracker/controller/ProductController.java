@@ -1,57 +1,50 @@
 package com.pricetracker.controller;
 
-import com.pricetracker.dto.ProductDto;
-import com.pricetracker.service.ProductService;
-import java.util.List;
+import com.pricetracker.dto.ProductDto;           // Импорт DTO
+import com.pricetracker.service.ProductService;    // Импорт сервиса
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
-public final class ProductController {
+public class ProductController {
 
-  private final ProductService productService;
+  private final ProductService productService;    // Внедрение сервиса
 
   @GetMapping("/{id}")
-  public ProductDto getProductById(@PathVariable final Long id) {
-    return productService.getProductById(id);
+  public ResponseEntity<ProductDto> getProductById(@PathVariable Long id) {
+    return ResponseEntity.ok(productService.getProductById(id));
   }
-
 
   @GetMapping
-  public List<ProductDto> getProducts(
-      @RequestParam(required = false) final String category) {
-    return productService.getProducts(category);
+  public ResponseEntity<List<ProductDto>> getProducts(
+      @RequestParam(required = false) String category) {
+    return ResponseEntity.ok(productService.getProducts(category));
   }
-
 
   @PostMapping
-  public ProductDto createProduct(
-      @RequestBody final ProductDto productDto) {
-    return productService.saveProduct(productDto);
+  public ResponseEntity<ProductDto> createProduct(@RequestBody ProductDto productDto) {
+    ProductDto created = productService.saveProduct(productDto);
+    return ResponseEntity
+        .created(URI.create("/api/products/" + created.id()))
+        .body(created);
   }
-
 
   @PutMapping("/{id}")
-  public ProductDto updateProduct(
-      @PathVariable final Long id,
-      @RequestBody final ProductDto productDto) {
-    return productService.updateProduct(id, productDto);
+  public ResponseEntity<ProductDto> updateProduct(
+      @PathVariable Long id,
+      @RequestBody ProductDto productDto) {
+    return ResponseEntity.ok(productService.updateProduct(id, productDto));
   }
 
-
   @DeleteMapping("/{id}")
-  public void deleteProduct(@PathVariable final Long id) {
+  public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
     productService.deleteProduct(id);
+    return ResponseEntity.noContent().build();
   }
 }

@@ -7,8 +7,4 @@ public record ProductDto(
     String name,
     BigDecimal price,
     String category
-) {
-
-}
-
-
+) {}
