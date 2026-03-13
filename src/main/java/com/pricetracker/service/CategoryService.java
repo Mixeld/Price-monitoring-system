@@ -6,13 +6,12 @@ import com.pricetracker.entity.Product;
 import com.pricetracker.mapper.CategoryMapper;
 import com.pricetracker.repository.CategoryRepository;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -27,7 +26,7 @@ public class CategoryService {
     log.debug("Getting all categories");
     return categoryRepository.findAll().stream()
         .map(categoryMapper::toDto)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Transactional(readOnly = true)
@@ -49,7 +48,6 @@ public class CategoryService {
   @Transactional
   public CategoryDto createCategory(CategoryDto dto) {
     log.debug("Creating new category with name: {}", dto.name());
-
     // Проверка на существующую категорию
     if (categoryRepository.findByName(dto.name()).isPresent()) {
       throw new IllegalArgumentException("Category with name '" + dto.name() + "' already exists");
@@ -66,26 +64,23 @@ public class CategoryService {
   @Transactional
   public CategoryDto updateCategory(Long id, CategoryDto dto) {
     log.debug("Updating category with id: {}", id);
-
     Category category = categoryRepository.findById(id)
         .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + id));
 
-    // Проверка, что новое имя не занято другой категорией
     if (!category.getName().equals(dto.name()) &&
         categoryRepository.findByName(dto.name()).isPresent()) {
       throw new IllegalArgumentException("Category with name '" + dto.name() + "' already exists");
     }
 
     category.setName(dto.name());
-
     log.info("Category updated successfully with id: {} -> new name: {}", id, dto.name());
+
     return categoryMapper.toDto(category);
   }
 
   @Transactional
   public void deleteCategory(Long id) {
     log.debug("Deleting category with id: {}", id);
-
     Category category = categoryRepository.findById(id)
         .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + id));
 
@@ -112,20 +107,21 @@ public class CategoryService {
   @Transactional(readOnly = true)
   public List<Long> getProductIdsInCategory(Long categoryId) {
     log.debug("Getting product IDs for category: {}", categoryId);
-
     Category category = categoryRepository.findById(categoryId)
-        .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + categoryId));
+        .orElseThrow(
+            () -> new EntityNotFoundException("Category not found with id: " + categoryId));
 
     return category.getProducts().stream()
         .map(Product::getId)
-        .collect(Collectors.toList());
+        .toList();
+    
   }
 
   @Transactional(readOnly = true)
   public long getProductCount(Long categoryId) {
     Category category = categoryRepository.findById(categoryId)
-        .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + categoryId));
-
+        .orElseThrow(
+            () -> new EntityNotFoundException("Category not found with id: " + categoryId));
     return category.getProducts().size();
   }
 }
