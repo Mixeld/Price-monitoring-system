@@ -2,7 +2,9 @@ package com.pricetracker.mapper;
 
 import com.pricetracker.dto.CategoryDto;
 import com.pricetracker.entity.Category;
+import org.springframework.stereotype.Component;
 
+@Component
 public class CategoryMapper {
   public CategoryDto toDto(Category category) {
     if (category == null) {

@@ -40,7 +40,7 @@ public final class ProductMapper {
 
     if (dto.category() != null) {
       Category category = new Category();
-      category.setName(dto.category());
+      category.setName(dto.category());  // И здесь правильно
       product.setCategory(category);
     }
 
