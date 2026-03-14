@@ -8,7 +8,6 @@ import com.pricetracker.repository.PriceHistoryRepository;
 import com.pricetracker.repository.StoreRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,7 +35,7 @@ public class StoreService {
     log.debug("Fetching all stores");
     return storeRepository.findAll().stream()
         .map(storeMapper::toDto)
-        .collect(Collectors.toList());
+        .toList(); // Заменено collect(Collectors.toList()) на toList()
   }
 
   @Transactional(readOnly = true)
@@ -58,7 +57,7 @@ public class StoreService {
   @Transactional
   public StoreDto createStore(StoreDto dto) {
     log.debug("Creating new store with name: {}", dto.name());
-    
+
     if (storeRepository.findByName(dto.name()).isPresent()) {
       throw new IllegalArgumentException(
           String.format(STORE_ALREADY_EXISTS, dto.name()));
@@ -113,8 +112,7 @@ public class StoreService {
     Store store = storeRepository.findById(id)
         .orElseThrow(() -> new EntityNotFoundException(STORE_NOT_FOUND_BY_ID + id));
 
-    List<PriceHistory> priceHistories = priceHistoryRepository.findByStoreIdOrderByDateRecordedDesc(
-        id);
+    List<PriceHistory> priceHistories = priceHistoryRepository.findByStoreIdOrderByDateRecordedDesc(id);
     if (!priceHistories.isEmpty()) {
       int historyCount = priceHistories.size();
       log.warn("Cannot delete store with id: {} because it has {} price history records",
@@ -146,7 +144,7 @@ public class StoreService {
     log.debug("Searching stores by name pattern: {}", namePattern);
     return storeRepository.findByNameContainingIgnoreCase(namePattern).stream()
         .map(storeMapper::toDto)
-        .collect(Collectors.toList());
+        .toList(); 
   }
 
   @Transactional(readOnly = true)
