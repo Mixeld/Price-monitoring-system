@@ -7,8 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class PriceTrackerApplication {
 
   public PriceTrackerApplication() {
-    /*
-    */
+  //КОММЕНТАРИЙ ДЛЯ СОНАРА
   }
 
   public static void main(final String[] args) {
