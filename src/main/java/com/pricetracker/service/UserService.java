@@ -1,320 +1,179 @@
 package com.pricetracker.service;
 
-import com.pricetracker.dto.PriceHistoryDto;
-import com.pricetracker.dto.PriceStatsDto;
-import com.pricetracker.entity.PriceHistory;
+import com.pricetracker.dto.UserDto;
 import com.pricetracker.entity.Product;
-import com.pricetracker.entity.Store;
-import com.pricetracker.mapper.PriceHistoryMapper;
-import com.pricetracker.repository.PriceHistoryRepository;
+import com.pricetracker.entity.User;
+import com.pricetracker.exception.BusinessException;
+import com.pricetracker.exception.DuplicateResourceException;
+import com.pricetracker.exception.ResourceNotFoundException;
+import com.pricetracker.mapper.UserMapper;
 import com.pricetracker.repository.ProductRepository;
-import com.pricetracker.repository.StoreRepository;
-import jakarta.persistence.EntityNotFoundException;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-import lombok.RequiredArgsConstructor;
+import com.pricetracker.repository.UserRepository;
+import com.pricetracker.service.base.NamedEntityService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.DigestUtils;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
-public class PriceHistoryService {
+public class UserService extends NamedEntityService<User, UserDto, Long> {
 
-  private final PriceHistoryRepository historyRepository;
+  private final UserRepository userRepository;
+  private final UserMapper mapper;
   private final ProductRepository productRepository;
-  private final StoreRepository storeRepository;
-  private final PriceHistoryMapper mapper;
 
-  @Transactional
-  public PriceHistoryDto recordPrice(PriceHistoryDto dto) {
-    log.info("Recording price for product ID: {}, price: {}, store ID: {}",
-        dto.productId(), dto.price(), dto.storeId());
+  public UserService(UserRepository userRepository,
+      UserMapper mapper,
+      ProductRepository productRepository) {
+    super(userRepository, "User", mapper::toDto, mapper::toEntity, userRepository::findByEmail);
+    this.userRepository = userRepository;
+    this.mapper = mapper;
+    this.productRepository = productRepository;
+  }
 
-    validatePrice(dto.price());
+  @Override
+  protected Long getIdValue(User entity) {
+    return entity.getId();
+  }
 
-    LocalDateTime recordDate = validateAndGetDate(dto.dateRecorded());
+  @Override
+  protected String extractNameFromDto(UserDto dto) {
+    return dto.email();
+  }
 
-    Product product = findProductById(dto.productId());
+  @Override
+  protected String extractNameFromEntity(User entity) {
+    return entity.getEmail();
+  }
 
-    PriceHistory history = mapper.toEntity(dto);
-    history.setDateRecorded(recordDate);
-    history.setProduct(product);
+  @Override
+  protected void validateBeforeCreate(UserDto dto) {
+    super.validateBeforeCreate(dto);
 
-    if (dto.storeId() != null) {
-      Store store = findStoreById(dto.storeId());
-      history.setStore(store);
+    if (dto.username() != null && userRepository.findByUsername(dto.username()).isPresent()) {
+      throw new DuplicateResourceException("User", "username", dto.username());
+    }
+  }
+
+  @Override
+  protected void validateBeforeUpdate(Long id, UserDto dto, User entity) {
+    super.validateBeforeUpdate(id, dto, entity);
+
+    if (dto.username() != null &&
+        !dto.username().equals(entity.getUsername()) &&
+        userRepository.findByUsername(dto.username()).isPresent()) {
+      throw new DuplicateResourceException("User", "username", dto.username());
+    }
+  }
+
+  @Override
+  protected void validateBeforeDelete(User entity) {
+    // Можно добавить проверки перед удалением пользователя
+  }
+
+  @Override
+  protected void updateEntity(User entity, UserDto dto) {
+    entity.setUsername(dto.username());
+    entity.setEmail(dto.email());
+    entity.setFullName(dto.fullName());
+    entity.setUpdatedAt(LocalDateTime.now());
+
+    if (dto.password() != null && !dto.password().isBlank()) {
+      entity.setPasswordHash(hashPassword(dto.password()));
     }
 
-    PriceHistory saved = historyRepository.save(history);
-    log.info("Price history recorded with id: {} for product: {}, price: {}",
-        saved.getId(), product.getName(), dto.price());
-
-    updateProductCurrentPrice(product, dto.price());
-
-    return mapper.toDto(saved);
+    // Обновляем отслеживаемые продукты
+    if (dto.trackedProductIds() != null) {
+      List<Product> products = dto.trackedProductIds().stream()
+          .map(productId -> productRepository.findById(productId)
+              .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId)))
+          .collect(Collectors.toList());
+      entity.setTrackedProducts(products);
+    }
   }
 
-  @Transactional(readOnly = true)
-  public PriceHistoryDto getHistoryById(Long id) {
-    log.debug("Getting price history by id: {}", id);
-    return historyRepository.findById(id)
+  @Override
+  protected void beforeSave(User entity) {
+    entity.setCreatedAt(LocalDateTime.now());
+    entity.setUpdatedAt(LocalDateTime.now());
+    if (entity.getPasswordHash() != null) {
+      entity.setPasswordHash(hashPassword(entity.getPasswordHash()));
+    }
+  }
+
+  private String hashPassword(String password) {
+    return org.springframework.util.DigestUtils.md5DigestAsHex(password.getBytes());
+  }
+
+  public UserDto getByUsername(String username) {
+    log.debug("Getting user by username: {}", username);
+    return userRepository.findByUsername(username)
         .map(mapper::toDto)
-        .orElseThrow(() -> new EntityNotFoundException("Price history not found with id: " + id));
+        .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
   }
 
-  @Transactional(readOnly = true)
-  public List<PriceHistoryDto> getHistoryForProduct(Long productId) {
-    log.debug("Getting price history for product ID: {}", productId);
+  public UserDto authenticate(String email, String password) {
+    log.debug("Authenticating user with email: {}", email);
 
-    checkProductExists(productId);
+    User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
 
-    return historyRepository.findByProductIdOrderByDateRecordedDesc(productId)
-        .stream()
-        .map(mapper::toDto)
-        .toList();
-  }
-
-  @Transactional(readOnly = true)
-  public List<PriceHistoryDto> getHistoryForProductInDateRange(
-      Long productId, LocalDateTime from, LocalDateTime to) {
-    log.debug("Getting price history for product ID: {} from {} to {}", productId, from, to);
-
-    checkProductExists(productId);
-    validateDateRange(from, to);
-
-    return historyRepository.findByProductIdAndDateRecordedBetweenOrderByDateRecordedDesc(
-            productId, from, to)
-        .stream()
-        .map(mapper::toDto)
-        .toList();
-  }
-
-  @Transactional(readOnly = true)
-  public List<PriceHistoryDto> getHistoryForStore(Long storeId) {
-    log.debug("Getting price history for store ID: {}", storeId);
-
-    checkStoreExists(storeId);
-
-    return historyRepository.findByStoreIdOrderByDateRecordedDesc(storeId)
-        .stream()
-        .map(mapper::toDto)
-        .toList();
-  }
-
-  @Transactional(readOnly = true)
-  public PriceHistoryDto getLatestPrice(Long productId) {
-    log.debug("Getting latest price for product ID: {}", productId);
-
-    checkProductExists(productId);
-
-    return historyRepository.findFirstByProductIdOrderByDateRecordedDesc(productId)
-        .map(mapper::toDto)
-        .orElseThrow(() -> new EntityNotFoundException(
-            "No price history found for product with id: " + productId));
-  }
-
-  @Transactional(readOnly = true)
-  public PriceStatsDto getPriceStats(Long productId, int days) {
-    log.debug("Getting price stats for product ID: {} for last {} days", productId, days);
-
-    checkProductExists(productId);
-
-    if (days <= 0 || days > 365) {
-      throw new IllegalArgumentException("Days must be between 1 and 365");
+    String hashedPassword = hashPassword(password);
+    if (!hashedPassword.equals(user.getPasswordHash())) {
+      throw new BusinessException("Invalid credentials", "AUTH_001");
     }
 
-    LocalDateTime fromDate = LocalDateTime.now().minusDays(days);
-    List<PriceHistory> histories = historyRepository
-        .findByProductIdAndDateRecordedAfterOrderByDateRecordedAsc(productId, fromDate);
-
-    if (histories.isEmpty()) {
-      throw new EntityNotFoundException(
-          "No price history found for product in the last " + days + " days");
-    }
-
-    Product product = productRepository.findById(productId).orElseThrow();
-
-    return calculatePriceStats(product, histories);
-  }
-
-  @Transactional(readOnly = true)
-  public PriceHistoryDto getMinPrice(Long productId, LocalDateTime from, LocalDateTime to) {
-    log.debug("Getting min price for product ID: {} from {} to {}", productId, from, to);
-
-    checkProductExists(productId);
-    validateDateRange(from, to);
-
-    return historyRepository.findFirstByProductIdAndDateRecordedBetweenOrderByPriceAsc(
-            productId, from, to)
-        .map(mapper::toDto)
-        .orElseThrow(() -> new EntityNotFoundException(
-            "No price history found for product in the specified period"));
-  }
-
-  @Transactional(readOnly = true)
-  public PriceHistoryDto getMaxPrice(Long productId, LocalDateTime from, LocalDateTime to) {
-    log.debug("Getting max price for product ID: {} from {} to {}", productId, from, to);
-
-    checkProductExists(productId);
-    validateDateRange(from, to);
-
-    return historyRepository.findFirstByProductIdAndDateRecordedBetweenOrderByPriceDesc(
-            productId, from, to)
-        .map(mapper::toDto)
-        .orElseThrow(() -> new EntityNotFoundException(
-            "No price history found for product in the specified period"));
-  }
-
-  @Transactional(readOnly = true)
-  public Double getAveragePrice(Long productId, LocalDateTime from, LocalDateTime to) {
-    log.debug("Getting average price for product ID: {} from {} to {}", productId, from, to);
-
-    checkProductExists(productId);
-    validateDateRange(from, to);
-
-    Double avg = historyRepository.getAveragePriceByProductIdAndDateRange(productId, from, to);
-
-    if (avg == null) {
-      throw new EntityNotFoundException(
-          "No price history found for product in the specified period");
-    }
-
-    return avg;
-  }
-
-  @Transactional(readOnly = true)
-  public long countHistoryForProduct(Long productId) {
-    checkProductExists(productId);
-    return historyRepository.countByProductId(productId);
-  }
-
-  @Transactional(readOnly = true)
-  public boolean existsForProduct(Long productId) {
-    return historyRepository.existsByProductId(productId);
+    return mapper.toDto(user);
   }
 
   @Transactional
-  public void deleteHistoryRecord(Long id) {
-    log.debug("Deleting price history with id: {}", id);
+  public void updateLastLogin(Long id) {
+    log.debug("Updating last login for user: {}", id);
+    userRepository.findById(id).ifPresent(user -> {
+      user.setLastLogin(LocalDateTime.now());
+      userRepository.save(user);
+    });
+  }
 
-    PriceHistory history = historyRepository.findById(id)
-        .orElseThrow(() -> new EntityNotFoundException("Price history not found with id: " + id));
+  // Новые методы для работы с отслеживаемыми продуктами
 
-    historyRepository.delete(history);
-    log.info("Price history deleted with id: {}", id);
+  @Transactional(readOnly = true)
+  public List<Product> getTrackedProducts(Long userId) {
+    log.debug("Getting tracked products for user: {}", userId);
+    User user = findEntityById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+    return user.getTrackedProducts();
   }
 
   @Transactional
-  public void deleteHistoryForProduct(Long productId) {
-    log.debug("Deleting all price history for product ID: {}", productId);
+  public void addTrackedProduct(Long userId, Long productId) {
+    log.debug("Adding product {} to tracked products for user: {}", productId, userId);
 
-    checkProductExists(productId);
+    User user = findEntityById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-    long count = historyRepository.countByProductId(productId);
-    historyRepository.deleteByProductId(productId);
+    Product product = productRepository.findById(productId)
+        .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId));
 
-    log.info("Deleted {} price history records for product ID: {}", count, productId);
-  }
-
-  private void validatePrice(BigDecimal price) {
-    if (price == null) {
-      throw new IllegalArgumentException("Price cannot be null");
-    }
-    if (price.compareTo(BigDecimal.ZERO) <= 0) {
-      throw new IllegalArgumentException("Price must be positive");
-    }
-    if (price.scale() > 2) {
-      throw new IllegalArgumentException("Price cannot have more than 2 decimal places");
+    if (!user.getTrackedProducts().contains(product)) {
+      user.getTrackedProducts().add(product);
+      userRepository.save(user);
     }
   }
 
-  private LocalDateTime validateAndGetDate(LocalDateTime date) {
-    if (date == null) {
-      return LocalDateTime.now();
-    }
-    if (date.isAfter(LocalDateTime.now())) {
-      throw new IllegalArgumentException("Date cannot be in the future");
-    }
-    return date;
-  }
+  @Transactional
+  public void removeTrackedProduct(Long userId, Long productId) {
+    log.debug("Removing product {} from tracked products for user: {}", productId, userId);
 
-  private void validateDateRange(LocalDateTime from, LocalDateTime to) {
-    if (from == null || to == null) {
-      throw new IllegalArgumentException("Date range parameters cannot be null");
-    }
-    if (from.isAfter(to)) {
-      throw new IllegalArgumentException("Start date cannot be after end date");
-    }
-  }
+    User user = findEntityById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-  private Product findProductById(Long productId) {
-    return productRepository.findById(productId)
-        .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + productId));
-  }
-
-  private void checkProductExists(Long productId) {
-    if (!productRepository.existsById(productId)) {
-      throw new EntityNotFoundException("Product not found with id: " + productId);
-    }
-  }
-
-  private Store findStoreById(Long storeId) {
-    return storeRepository.findById(storeId)
-        .orElseThrow(() -> new EntityNotFoundException("Store not found with id: " + storeId));
-  }
-
-  private void checkStoreExists(Long storeId) {
-    if (!storeRepository.existsById(storeId)) {
-      throw new EntityNotFoundException("Store not found with id: " + storeId);
-    }
-  }
-
-  private void updateProductCurrentPrice(Product product, BigDecimal newPrice) {
-    product.setCurrentPrice(newPrice);
-    productRepository.save(product);
-    log.debug("Updated current price for product ID: {} to: {}", product.getId(), newPrice);
-  }
-  
-  private PriceStatsDto calculatePriceStats(Product product, List<PriceHistory> histories) {
-    BigDecimal min = histories.stream()
-        .map(PriceHistory::getPrice)
-        .min(BigDecimal::compareTo)
-        .orElse(product.getCurrentPrice());
-
-    BigDecimal max = histories.stream()
-        .map(PriceHistory::getPrice)
-        .max(BigDecimal::compareTo)
-        .orElse(product.getCurrentPrice());
-
-    double avg = histories.stream()
-        .mapToDouble(h -> h.getPrice().doubleValue())
-        .average()
-        .orElse(0.0);
-
-    BigDecimal first = histories.get(0).getPrice();
-    BigDecimal last = histories.get(histories.size() - 1).getPrice();
-    BigDecimal change = last.subtract(first);
-
-    double changePercent = 0;
-    if (first.compareTo(BigDecimal.ZERO) != 0) {
-      changePercent = (change.doubleValue() / first.doubleValue()) * 100;
-    }
-
-    return new PriceStatsDto(
-        product.getId(),
-        product.getName(),
-        min,
-        max,
-        BigDecimal.valueOf(avg),
-        product.getCurrentPrice(),
-        change,
-        changePercent,
-        histories.get(0).getDateRecorded(),
-        histories.get(histories.size() - 1).getDateRecorded(),
-        histories.size()
-    );
+    user.getTrackedProducts().removeIf(product -> product.getId().equals(productId));
+    userRepository.save(user);
   }
 }

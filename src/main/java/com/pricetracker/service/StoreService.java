@@ -144,7 +144,7 @@ public class StoreService {
     log.debug("Searching stores by name pattern: {}", namePattern);
     return storeRepository.findByNameContainingIgnoreCase(namePattern).stream()
         .map(storeMapper::toDto)
-        .toList(); 
+        .toList();
   }
 
   @Transactional(readOnly = true)

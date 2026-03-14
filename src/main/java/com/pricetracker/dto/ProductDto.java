@@ -5,6 +5,6 @@ import java.math.BigDecimal;
 public record ProductDto(
     Long id,
     String name,
-    BigDecimal price,
+    BigDecimal price,  // Должен быть BigDecimal
     String category
 ) {}
