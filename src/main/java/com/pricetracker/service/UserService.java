@@ -20,6 +20,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserService {
 
+  private static final String USER_NOT_FOUND = "User not found with id: ";
+  
   private final UserRepository userRepository;
   private final ProductRepository productRepository;
   private final UserMapper userMapper;
@@ -37,7 +39,7 @@ public class UserService {
     log.debug("Getting user by id: {}", id);
     return userRepository.findById(id)
         .map(userMapper::toDto)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+        .orElseThrow(() -> new EntityNotFoundException(USER_NOT_FOUND + id));
   }
 
   @Transactional(readOnly = true)
@@ -45,7 +47,7 @@ public class UserService {
     log.debug("Getting user by username: {}", username);
     return userRepository.findByUsername(username)
         .map(userMapper::toDto)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with username: " + username));
+        .orElseThrow(() -> new EntityNotFoundException(USER_NOT_FOUND + username));
   }
 
   @Transactional
@@ -74,7 +76,7 @@ public class UserService {
     log.debug("Updating user with id: {}", id);
 
     User user = userRepository.findById(id)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+        .orElseThrow(() -> new EntityNotFoundException(USER_NOT_FOUND + id));
 
     // Проверка уникальности username (если он меняется)
     if (!user.getUsername().equals(dto.username()) &&
@@ -103,7 +105,7 @@ public class UserService {
     log.debug("Deleting user with id: {}", id);
 
     if (!userRepository.existsById(id)) {
-      throw new EntityNotFoundException("User not found with id: " + id);
+      throw new EntityNotFoundException(USER_NOT_FOUND + id);
     }
 
     userRepository.deleteById(id);
@@ -115,7 +117,7 @@ public class UserService {
     log.debug("Subscribing user {} to product {}", userId, productId);
 
     User user = userRepository.findWithProductsById(userId)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+        .orElseThrow(() -> new EntityNotFoundException(USER_NOT_FOUND + userId));
 
     Product product = productRepository.findById(productId)
         .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + productId));
@@ -134,7 +136,7 @@ public class UserService {
     log.debug("Unsubscribing user {} from product {}", userId, productId);
 
     User user = userRepository.findWithProductsById(userId)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+        .orElseThrow(() -> new EntityNotFoundException(USER_NOT_FOUND + userId));
 
     boolean removed = user.getTrackedProducts().removeIf(p -> p.getId().equals(productId));
 
@@ -151,7 +153,7 @@ public class UserService {
     log.debug("Getting subscriptions for user {}", userId);
 
     User user = userRepository.findWithProductsById(userId)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+        .orElseThrow(() -> new EntityNotFoundException(USER_NOT_FOUND + userId));
 
     return user.getTrackedProducts().stream()
         .map(Product::getId)
@@ -163,7 +165,7 @@ public class UserService {
     log.debug("Getting tracked products for user {}", userId);
 
     User user = userRepository.findWithProductsById(userId)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+        .orElseThrow(() -> new EntityNotFoundException(USER_NOT_FOUND + userId));
 
     return user.getTrackedProducts();
   }
