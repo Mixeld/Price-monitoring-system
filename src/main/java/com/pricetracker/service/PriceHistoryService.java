@@ -11,14 +11,15 @@ import com.pricetracker.repository.ProductRepository;
 import com.pricetracker.repository.StoreRepository;
 import com.pricetracker.service.base.BaseService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;  // ВАЖНО: добавить импорт
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -26,25 +27,29 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
 
   private final PriceHistoryRepository priceHistoryRepository;
   private final ProductRepository productRepository;
-  private final StoreRepository storeRepository;  // Добавить, если нужно
+  private final StoreRepository storeRepository;
   private final PriceHistoryMapper mapper;
+  private final PriceHistoryService self;  // Добавляем final поле
 
   private static final String PRODUCT = "Product";
 
+  @Autowired
   public PriceHistoryService(PriceHistoryRepository priceHistoryRepository,
       ProductRepository productRepository,
-      StoreRepository storeRepository,  // Добавить параметр
-      PriceHistoryMapper mapper) {
+      StoreRepository storeRepository,
+      PriceHistoryMapper mapper,
+      @Lazy PriceHistoryService self) {  // Добавляем self в конструктор с @Lazy
     super(priceHistoryRepository, "PriceHistory", mapper::toDto, mapper::toEntity);
     this.priceHistoryRepository = priceHistoryRepository;
     this.productRepository = productRepository;
     this.storeRepository = storeRepository;
     this.mapper = mapper;
+    this.self = self;  
   }
 
   @Override
   protected Long getIdValue(PriceHistory entity) {
-    return entity.getId();  //这个方法 уже есть
+    return entity.getId();
   }
 
   @Override
@@ -56,7 +61,7 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
 
   @Override
   protected void updateEntity(PriceHistory entity, PriceHistoryDto dto) {
-    entity.setPrice(BigDecimal.valueOf(dto.price()));  // Конвертация Double -> BigDecimal
+    entity.setPrice(BigDecimal.valueOf(dto.price()));
     entity.setDateRecorded(dto.dateRecorded() != null ? dto.dateRecorded() : LocalDateTime.now());
 
     if (dto.productId() != null && !dto.productId().equals(entity.getProduct().getId())) {
@@ -76,7 +81,7 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
   @Transactional(readOnly = true)
   public PriceHistoryDto getHistoryById(Long id) {
     log.debug("Getting price history by id: {}", id);
-    return getById(id);
+    return self.getById(id);  // Теперь self инициализирован
   }
 
   @Transactional(readOnly = true)
@@ -190,7 +195,6 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
     Product product = productRepository.findById(productId)
         .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, "id", productId));
 
-    // Работа с BigDecimal
     BigDecimal min = histories.stream()
         .map(PriceHistory::getPrice)
         .min(BigDecimal::compareTo)
@@ -236,12 +240,10 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
   public List<PriceHistoryDto> getHistoryForStore(Long storeId) {
     log.debug("Getting price history for store: {}", storeId);
 
-    // Проверяем, существует ли store (если нужно)
     if (!storeRepository.existsById(storeId)) {
       throw new ResourceNotFoundException("Store", "id", storeId);
     }
 
-    // Этот метод должен быть добавлен в репозиторий
     return priceHistoryRepository.findByStoreIdOrderByDateRecordedDesc(storeId)
         .stream()
         .map(mapper::toDto)
