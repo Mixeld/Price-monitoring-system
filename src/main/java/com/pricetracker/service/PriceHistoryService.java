@@ -29,7 +29,9 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
   private final ProductRepository productRepository;
   private final StoreRepository storeRepository;
   private final PriceHistoryMapper mapper;
-  private final PriceHistoryService self;  // Добавляем final поле
+  
+  // Используем @Lazy для избежания циклической зависимости
+  private final PriceHistoryService self;
 
   private static final String PRODUCT = "Product";
 
@@ -38,7 +40,7 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
       ProductRepository productRepository,
       StoreRepository storeRepository,
       PriceHistoryMapper mapper,
-      @Lazy PriceHistoryService self) {  // Добавляем self в конструктор с @Lazy
+      @Lazy PriceHistoryService self) {  // @Lazy обязательно!
     super(priceHistoryRepository, "PriceHistory", mapper::toDto, mapper::toEntity);
     this.priceHistoryRepository = priceHistoryRepository;
     this.productRepository = productRepository;
@@ -81,7 +83,8 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
   @Transactional(readOnly = true)
   public PriceHistoryDto getHistoryById(Long id) {
     log.debug("Getting price history by id: {}", id);
-    return self.getById(id);  // Теперь self инициализирован
+    // Вызов через self для правильной работы транзакционного прокси
+    return self.getById(id);
   }
 
   @Transactional(readOnly = true)
@@ -115,12 +118,14 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
   @Transactional
   public PriceHistoryDto recordPrice(PriceHistoryDto dto) {
     log.debug("Recording new price for product: {}", dto.productId());
+    // ВАЖНО: используем self.create(), а не super.create() или this.create()
     return self.create(dto);
   }
 
   @Transactional
   public void deleteHistoryRecord(Long id) {
     log.debug("Deleting price history record: {}", id);
+    // ВАЖНО: используем self.delete(), а не super.delete() или this.delete()
     self.delete(id);
   }
 
@@ -217,8 +222,8 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
 
     double changePercent = first.compareTo(BigDecimal.ZERO) != 0
         ? change.multiply(BigDecimal.valueOf(100))
-        .divide(first, 2, RoundingMode.HALF_UP)
-        .doubleValue()
+            .divide(first, 2, RoundingMode.HALF_UP)
+            .doubleValue()
         : 0.0;
 
     return new PriceStatsDto(
