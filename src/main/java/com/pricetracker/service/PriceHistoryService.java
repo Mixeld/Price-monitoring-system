@@ -44,7 +44,7 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
     this.productRepository = productRepository;
     this.storeRepository = storeRepository;
     this.mapper = mapper;
-    this.self = self;  
+    this.self = self;
   }
 
   @Override
@@ -115,13 +115,13 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
   @Transactional
   public PriceHistoryDto recordPrice(PriceHistoryDto dto) {
     log.debug("Recording new price for product: {}", dto.productId());
-    return create(dto);
+    return self.create(dto);
   }
 
   @Transactional
   public void deleteHistoryRecord(Long id) {
     log.debug("Deleting price history record: {}", id);
-    delete(id);
+    self.delete(id);
   }
 
   @Transactional
