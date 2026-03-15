@@ -29,6 +29,8 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
   private final StoreRepository storeRepository;  // Добавить, если нужно
   private final PriceHistoryMapper mapper;
 
+  private static final String PRODUCT = "Product";
+
   public PriceHistoryService(PriceHistoryRepository priceHistoryRepository,
       ProductRepository productRepository,
       StoreRepository storeRepository,  // Добавить параметр
@@ -48,7 +50,7 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
   @Override
   protected void validateBeforeCreate(PriceHistoryDto dto) {
     if (!productRepository.existsById(dto.productId())) {
-      throw new ResourceNotFoundException("Product", "id", dto.productId());
+      throw new ResourceNotFoundException(PRODUCT, "id", dto.productId());
     }
   }
 
@@ -59,7 +61,7 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
 
     if (dto.productId() != null && !dto.productId().equals(entity.getProduct().getId())) {
       Product product = productRepository.findById(dto.productId())
-          .orElseThrow(() -> new ResourceNotFoundException("Product", "id", dto.productId()));
+          .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, "id", dto.productId()));
       entity.setProduct(product);
     }
   }
@@ -186,7 +188,7 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
     }
 
     Product product = productRepository.findById(productId)
-        .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId));
+        .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, "id", productId));
 
     // Работа с BigDecimal
     BigDecimal min = histories.stream()
@@ -251,7 +253,7 @@ public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryD
     log.debug("Adding {} bulk prices for product: {}", prices.size(), productId);
 
     Product product = productRepository.findById(productId)
-        .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId));
+        .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, "id", productId));
 
     List<PriceHistory> histories = prices.stream()
         .map(price -> PriceHistory.builder()
