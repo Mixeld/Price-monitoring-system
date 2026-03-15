@@ -13,7 +13,6 @@ public final class ProductMapper {
       return null;
     }
 
-
     String categoryName = null;
     if (product.getCategory() != null) {
       categoryName = product.getCategory().getName();
@@ -22,24 +21,23 @@ public final class ProductMapper {
     return new ProductDto(
         product.getId(),
         product.getName(),
-        product.getCurrentPrice(),
+        product.getCurrentPrice(),  // Уже BigDecimal
         categoryName
     );
   }
-
 
   public Product toEntity(final ProductDto dto) {
     if (dto == null) {
       return null;
     }
+
     Product product = new Product();
     product.setName(dto.name());
-    product.setCurrentPrice(dto.price());
-
+    product.setCurrentPrice(dto.price());  // Уже BigDecimal
 
     if (dto.category() != null) {
       Category category = new Category();
-      category.setName(dto.category());  // И здесь правильно
+      category.setName(dto.category());
       product.setCategory(category);
     }
 

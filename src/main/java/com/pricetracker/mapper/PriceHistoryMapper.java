@@ -2,24 +2,27 @@ package com.pricetracker.mapper;
 
 import com.pricetracker.dto.PriceHistoryDto;
 import com.pricetracker.entity.PriceHistory;
+import com.pricetracker.entity.Product;
+import com.pricetracker.entity.Store;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
 
 @Component
 public class PriceHistoryMapper {
 
-  public PriceHistoryDto toDto (PriceHistory history){
+  public PriceHistoryDto toDto(PriceHistory history) {
     if (history == null) return null;
 
-
-    Long productID = (history.getProduct() != null) ? history.getProduct().getId() : null;
-    Long storeID = (history.getStore() != null) ? history.getStore().getId() : null;
+    Long productId = (history.getProduct() != null) ? history.getProduct().getId() : null;
+    Long storeId = (history.getStore() != null) ? history.getStore().getId() : null;
 
     return new PriceHistoryDto(
         history.getId(),
-        history.getPrice(),
+        history.getPrice().doubleValue(),
         history.getDateRecorded(),
-        productID,
-        storeID
+        productId,
+        storeId
     );
   }
 
@@ -28,7 +31,7 @@ public class PriceHistoryMapper {
 
     PriceHistory history = new PriceHistory();
     history.setId(dto.id());
-    history.setPrice(dto.price());
+    history.setPrice(BigDecimal.valueOf(dto.price()));
     history.setDateRecorded(dto.dateRecorded());
 
     return history;

@@ -40,12 +40,12 @@ public class ProductService {
       return productRepository.findByCategoryName(categoryName)
           .stream()
           .map(productMapper::toDto)
-          .collect(Collectors.toList());
+          .toList();
     }
 
     return productRepository.findAll().stream()
         .map(productMapper::toDto)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Transactional

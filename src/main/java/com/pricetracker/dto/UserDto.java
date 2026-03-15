@@ -6,7 +6,7 @@ public record UserDto(
     Long id,
     String username,
     String email,
-    List<Long> subscribedProductIds
-) {
-
-}
+    String fullName,
+    String password,
+    List<Long> trackedProductIds  // Добавляем поле для отслеживаемых продуктов
+) {}

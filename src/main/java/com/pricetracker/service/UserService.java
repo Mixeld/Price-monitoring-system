@@ -3,168 +3,177 @@ package com.pricetracker.service;
 import com.pricetracker.dto.UserDto;
 import com.pricetracker.entity.Product;
 import com.pricetracker.entity.User;
+import com.pricetracker.exception.BusinessException;
+import com.pricetracker.exception.DuplicateResourceException;
+import com.pricetracker.exception.ResourceNotFoundException;
 import com.pricetracker.mapper.UserMapper;
 import com.pricetracker.repository.ProductRepository;
 import com.pricetracker.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
+import com.pricetracker.service.base.NamedEntityService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.DigestUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
-public class UserService {
+public class UserService extends NamedEntityService<User, UserDto, Long> {
 
   private final UserRepository userRepository;
+  private final UserMapper mapper;
   private final ProductRepository productRepository;
-  private final UserMapper userMapper;
 
-  @Transactional(readOnly = true)
-  public List<UserDto> getAllUsers() {
-    log.debug("Getting all users");
-    return userRepository.findAll().stream()
-        .map(userMapper::toDto)
-        .collect(Collectors.toList());
+  public UserService(UserRepository userRepository,
+      UserMapper mapper,
+      ProductRepository productRepository) {
+    super(userRepository, "User", mapper::toDto, mapper::toEntity, userRepository::findByEmail);
+    this.userRepository = userRepository;
+    this.mapper = mapper;
+    this.productRepository = productRepository;
   }
 
-  @Transactional(readOnly = true)
-  public UserDto getUserById(Long id) {
-    log.debug("Getting user by id: {}", id);
-    return userRepository.findById(id)
-        .map(userMapper::toDto)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+  @Override
+  protected Long getIdValue(User entity) {
+    return entity.getId();
   }
 
-  @Transactional(readOnly = true)
-  public UserDto getUserByUsername(String username) {
+  @Override
+  protected String extractNameFromDto(UserDto dto) {
+    return dto.email();
+  }
+
+  @Override
+  protected String extractNameFromEntity(User entity) {
+    return entity.getEmail();
+  }
+
+  @Override
+  protected void validateBeforeCreate(UserDto dto) {
+    super.validateBeforeCreate(dto);
+
+    if (dto.username() != null && userRepository.findByUsername(dto.username()).isPresent()) {
+      throw new DuplicateResourceException("User", "username", dto.username());
+    }
+  }
+
+  @Override
+  protected void validateBeforeUpdate(Long id, UserDto dto, User entity) {
+    super.validateBeforeUpdate(id, dto, entity);
+
+    if (dto.username() != null &&
+        !dto.username().equals(entity.getUsername()) &&
+        userRepository.findByUsername(dto.username()).isPresent()) {
+      throw new DuplicateResourceException("User", "username", dto.username());
+    }
+  }
+
+  @Override
+  protected void validateBeforeDelete(User entity) {
+    // Можно добавить проверки перед удалением пользователя
+  }
+
+  @Override
+  protected void updateEntity(User entity, UserDto dto) {
+    entity.setUsername(dto.username());
+    entity.setEmail(dto.email());
+    entity.setFullName(dto.fullName());
+    entity.setUpdatedAt(LocalDateTime.now());
+
+    if (dto.password() != null && !dto.password().isBlank()) {
+      entity.setPasswordHash(hashPassword(dto.password()));
+    }
+
+    // Обновляем отслеживаемые продукты
+    if (dto.trackedProductIds() != null) {
+      List<Product> products = dto.trackedProductIds().stream()
+          .map(productId -> productRepository.findById(productId)
+              .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId)))
+          .toList();
+      entity.setTrackedProducts(products);
+    }
+  }
+
+  @Override
+  protected void beforeSave(User entity) {
+    entity.setCreatedAt(LocalDateTime.now());
+    entity.setUpdatedAt(LocalDateTime.now());
+    if (entity.getPasswordHash() != null) {
+      entity.setPasswordHash(hashPassword(entity.getPasswordHash()));
+    }
+  }
+
+  private String hashPassword(String password) {
+    return org.springframework.util.DigestUtils.md5DigestAsHex(password.getBytes());
+  }
+
+  public UserDto getByUsername(String username) {
     log.debug("Getting user by username: {}", username);
     return userRepository.findByUsername(username)
-        .map(userMapper::toDto)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with username: " + username));
+        .map(mapper::toDto)
+        .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
+  }
+
+  public UserDto authenticate(String email, String password) {
+    log.debug("Authenticating user with email: {}", email);
+
+    User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+
+    String hashedPassword = hashPassword(password);
+    if (!hashedPassword.equals(user.getPasswordHash())) {
+      throw new BusinessException("Invalid credentials", "AUTH_001");
+    }
+
+    return mapper.toDto(user);
   }
 
   @Transactional
-  public UserDto createUser(UserDto dto) {
-    log.debug("Creating new user with username: {}", dto.username());
+  public void updateLastLogin(Long id) {
+    log.debug("Updating last login for user: {}", id);
+    userRepository.findById(id).ifPresent(user -> {
+      user.setLastLogin(LocalDateTime.now());
+      userRepository.save(user);
+    });
+  }
 
-    // Проверка на существующего пользователя
-    if (userRepository.findByUsername(dto.username()).isPresent()) {
-      throw new IllegalArgumentException("User with username " + dto.username() + " already exists");
-    }
+  // Новые методы для работы с отслеживаемыми продуктами
 
-    // Проверка email (можно добавить)
-    if (dto.email() != null && userRepository.findByEmail(dto.email()).isPresent()) {
-      throw new IllegalArgumentException("User with email " + dto.email() + " already exists");
-    }
-
-    User user = userMapper.toEntity(dto);
-    User savedUser = userRepository.save(user);
-    log.info("User created successfully with id: {}", savedUser.getId());
-
-    return userMapper.toDto(savedUser);
+  @Transactional(readOnly = true)
+  public List<Product> getTrackedProducts(Long userId) {
+    log.debug("Getting tracked products for user: {}", userId);
+    User user = findEntityById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+    return user.getTrackedProducts();
   }
 
   @Transactional
-  public UserDto updateUser(Long id, UserDto dto) {
-    log.debug("Updating user with id: {}", id);
+  public void addTrackedProduct(Long userId, Long productId) {
+    log.debug("Adding product {} to tracked products for user: {}", productId, userId);
 
-    User user = userRepository.findById(id)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-
-    // Проверка уникальности username (если он меняется)
-    if (!user.getUsername().equals(dto.username()) &&
-        userRepository.findByUsername(dto.username()).isPresent()) {
-      throw new IllegalArgumentException("Username " + dto.username() + " is already taken");
-    }
-
-    // Проверка уникальности email (если он меняется)
-    if (dto.email() != null && !dto.email().equals(user.getEmail()) &&
-        userRepository.findByEmail(dto.email()).isPresent()) {
-      throw new IllegalArgumentException("Email " + dto.email() + " is already registered");
-    }
-
-    user.setUsername(dto.username());
-    user.setEmail(dto.email());
-
-    // Сохранять не обязательно - @Transactional сделает это автоматически
-    // userRepository.save(user);
-
-    log.info("User updated successfully with id: {}", id);
-    return userMapper.toDto(user);
-  }
-
-  @Transactional
-  public void deleteUser(Long id) {
-    log.debug("Deleting user with id: {}", id);
-
-    if (!userRepository.existsById(id)) {
-      throw new EntityNotFoundException("User not found with id: " + id);
-    }
-
-    userRepository.deleteById(id);
-    log.info("User deleted successfully with id: {}", id);
-  }
-
-  @Transactional
-  public void subscribeToProduct(Long userId, Long productId) {
-    log.debug("Subscribing user {} to product {}", userId, productId);
-
-    User user = userRepository.findWithProductsById(userId)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+    User user = findEntityById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
     Product product = productRepository.findById(productId)
-        .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + productId));
+        .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId));
 
     if (!user.getTrackedProducts().contains(product)) {
       user.getTrackedProducts().add(product);
-      log.info("User {} subscribed to product {}", userId, productId);
-      // Не нужно вызывать save - @Transactional сохранит изменения
-    } else {
-      log.debug("User {} already subscribed to product {}", userId, productId);
+      userRepository.save(user);
     }
   }
 
   @Transactional
-  public void unsubscribeFromProduct(Long userId, Long productId) {
-    log.debug("Unsubscribing user {} from product {}", userId, productId);
+  public void removeTrackedProduct(Long userId, Long productId) {
+    log.debug("Removing product {} from tracked products for user: {}", productId, userId);
 
-    User user = userRepository.findWithProductsById(userId)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+    User user = findEntityById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-    boolean removed = user.getTrackedProducts().removeIf(p -> p.getId().equals(productId));
-
-    if (removed) {
-      log.info("User {} unsubscribed from product {}", userId, productId);
-      // Не нужно вызывать save - @Transactional сохранит изменения
-    } else {
-      log.debug("User {} was not subscribed to product {}", userId, productId);
-    }
-  }
-
-  @Transactional(readOnly = true)
-  public List<Long> getUserSubscriptions(Long userId) {
-    log.debug("Getting subscriptions for user {}", userId);
-
-    User user = userRepository.findWithProductsById(userId)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
-
-    return user.getTrackedProducts().stream()
-        .map(Product::getId)
-        .collect(Collectors.toList());
-  }
-
-  @Transactional(readOnly = true)
-  public List<Product> getUserTrackedProducts(Long userId) {
-    log.debug("Getting tracked products for user {}", userId);
-
-    User user = userRepository.findWithProductsById(userId)
-        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
-
-    return user.getTrackedProducts();
+    user.getTrackedProducts().removeIf(product -> product.getId().equals(productId));
+    userRepository.save(user);
   }
 }

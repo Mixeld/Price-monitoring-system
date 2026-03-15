@@ -12,12 +12,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
+
+  private static final String CATEGORY_NOT_FOUND_BY_ID = "Category not found with id: ";
+  private static final String CATEGORY_NOT_FOUND_BY_NAME = "Category not found with name: ";
+  private static final String CATEGORY_ALREADY_EXISTS = "Category with name '%s' already exists";
+  private static final String CANNOT_DELETE_CATEGORY_WITH_PRODUCTS =
+      "Cannot delete category '%s' because it has %d associated products. " +
+          "Remove or reassign these products first.";
 
   private final CategoryRepository categoryRepository;
   private final CategoryMapper categoryMapper;
@@ -27,7 +33,7 @@ public class CategoryService {
     log.debug("Getting all categories");
     return categoryRepository.findAll().stream()
         .map(categoryMapper::toDto)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Transactional(readOnly = true)
@@ -35,7 +41,7 @@ public class CategoryService {
     log.debug("Getting category by id: {}", id);
     return categoryRepository.findById(id)
         .map(categoryMapper::toDto)
-        .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + id));
+        .orElseThrow(() -> new EntityNotFoundException(CATEGORY_NOT_FOUND_BY_ID + id));
   }
 
   @Transactional(readOnly = true)
@@ -43,16 +49,16 @@ public class CategoryService {
     log.debug("Getting category by name: {}", name);
     return categoryRepository.findByName(name)
         .map(categoryMapper::toDto)
-        .orElseThrow(() -> new EntityNotFoundException("Category not found with name: " + name));
+        .orElseThrow(() -> new EntityNotFoundException(CATEGORY_NOT_FOUND_BY_NAME + name));
   }
 
   @Transactional
   public CategoryDto createCategory(CategoryDto dto) {
     log.debug("Creating new category with name: {}", dto.name());
 
-    // Проверка на существующую категорию
     if (categoryRepository.findByName(dto.name()).isPresent()) {
-      throw new IllegalArgumentException("Category with name '" + dto.name() + "' already exists");
+      throw new IllegalArgumentException(
+          String.format(CATEGORY_ALREADY_EXISTS, dto.name()));
     }
 
     Category category = categoryMapper.toEntity(dto);
@@ -68,17 +74,17 @@ public class CategoryService {
     log.debug("Updating category with id: {}", id);
 
     Category category = categoryRepository.findById(id)
-        .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + id));
+        .orElseThrow(() -> new EntityNotFoundException(CATEGORY_NOT_FOUND_BY_ID + id));
 
-    // Проверка, что новое имя не занято другой категорией
     if (!category.getName().equals(dto.name()) &&
         categoryRepository.findByName(dto.name()).isPresent()) {
-      throw new IllegalArgumentException("Category with name '" + dto.name() + "' already exists");
+      throw new IllegalArgumentException(
+          String.format(CATEGORY_ALREADY_EXISTS, dto.name()));
     }
 
     category.setName(dto.name());
-
     log.info("Category updated successfully with id: {} -> new name: {}", id, dto.name());
+
     return categoryMapper.toDto(category);
   }
 
@@ -87,17 +93,15 @@ public class CategoryService {
     log.debug("Deleting category with id: {}", id);
 
     Category category = categoryRepository.findById(id)
-        .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + id));
+        .orElseThrow(() -> new EntityNotFoundException(CATEGORY_NOT_FOUND_BY_ID + id));
 
-    // Проверка, есть ли у категории продукты
     if (!category.getProducts().isEmpty()) {
       int productCount = category.getProducts().size();
       log.warn("Cannot delete category with id: {} because it has {} associated products",
           id, productCount);
       throw new IllegalStateException(
-          "Cannot delete category '" + category.getName() +
-              "' because it has " + productCount + " associated products. " +
-              "Remove or reassign these products first.");
+          String.format(CANNOT_DELETE_CATEGORY_WITH_PRODUCTS,
+              category.getName(), productCount));
     }
 
     categoryRepository.delete(category);
@@ -114,17 +118,17 @@ public class CategoryService {
     log.debug("Getting product IDs for category: {}", categoryId);
 
     Category category = categoryRepository.findById(categoryId)
-        .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + categoryId));
+        .orElseThrow(() -> new EntityNotFoundException(CATEGORY_NOT_FOUND_BY_ID + categoryId));
 
     return category.getProducts().stream()
         .map(Product::getId)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Transactional(readOnly = true)
   public long getProductCount(Long categoryId) {
     Category category = categoryRepository.findById(categoryId)
-        .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + categoryId));
+        .orElseThrow(() -> new EntityNotFoundException(CATEGORY_NOT_FOUND_BY_ID + categoryId));
 
     return category.getProducts().size();
   }
