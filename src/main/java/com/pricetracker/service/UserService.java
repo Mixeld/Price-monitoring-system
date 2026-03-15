@@ -92,7 +92,7 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
       List<Product> products = dto.trackedProductIds().stream()
           .map(productId -> productRepository.findById(productId)
               .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId)))
-          .collect(Collectors.toList());
+          .toList();
       entity.setTrackedProducts(products);
     }
   }
