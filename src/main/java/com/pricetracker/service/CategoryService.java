@@ -6,12 +6,11 @@ import com.pricetracker.entity.Product;
 import com.pricetracker.mapper.CategoryMapper;
 import com.pricetracker.repository.CategoryRepository;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Slf4j
 @Service
@@ -22,7 +21,8 @@ public class CategoryService {
   private static final String CATEGORY_NOT_FOUND_BY_NAME = "Category not found with name: ";
   private static final String CATEGORY_ALREADY_EXISTS = "Category with name '%s' already exists";
   private static final String CANNOT_DELETE_CATEGORY_WITH_PRODUCTS =
-      "Cannot delete category '%s' because it has %d associated products. " +
+      "Cannot delete category '%s' because it has %d associated products. "
+          +
           "Remove or reassign these products first.";
 
   private final CategoryRepository categoryRepository;
@@ -76,7 +76,8 @@ public class CategoryService {
     Category category = categoryRepository.findById(id)
         .orElseThrow(() -> new EntityNotFoundException(CATEGORY_NOT_FOUND_BY_ID + id));
 
-    if (!category.getName().equals(dto.name()) &&
+    if (!category.getName().equals(dto.name())
+        &&
         categoryRepository.findByName(dto.name()).isPresent()) {
       throw new IllegalArgumentException(
           String.format(CATEGORY_ALREADY_EXISTS, dto.name()));

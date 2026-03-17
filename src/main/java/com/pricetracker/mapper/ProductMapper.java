@@ -21,7 +21,7 @@ public final class ProductMapper {
     return new ProductDto(
         product.getId(),
         product.getName(),
-        product.getCurrentPrice(),  // Уже BigDecimal
+        product.getCurrentPrice(),
         categoryName
     );
   }
@@ -33,7 +33,7 @@ public final class ProductMapper {
 
     Product product = new Product();
     product.setName(dto.name());
-    product.setCurrentPrice(dto.price());  // Уже BigDecimal
+    product.setCurrentPrice(dto.price());
 
     if (dto.category() != null) {
       Category category = new Category();

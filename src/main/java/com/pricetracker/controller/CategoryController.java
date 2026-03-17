@@ -2,12 +2,18 @@ package com.pricetracker.controller;
 
 import com.pricetracker.dto.CategoryDto;
 import com.pricetracker.service.CategoryService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.net.URI;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/categories")
@@ -23,13 +29,11 @@ public class CategoryController {
 
   @GetMapping("/{id}")
   public ResponseEntity<CategoryDto> getCategoryById(@PathVariable Long id) {
-    // Этот метод нужно добавить в CategoryService
     return ResponseEntity.ok(categoryService.getCategoryById(id));
   }
 
   @GetMapping("/name/{name}")
   public ResponseEntity<CategoryDto> getCategoryByName(@PathVariable String name) {
-    // Этот метод нужно добавить в CategoryService
     return ResponseEntity.ok(categoryService.getCategoryByName(name));
   }
 
@@ -45,7 +49,6 @@ public class CategoryController {
   public ResponseEntity<CategoryDto> updateCategory(
       @PathVariable Long id,
       @RequestBody CategoryDto categoryDto) {
-    // Этот метод нужно добавить в CategoryService
     return ResponseEntity.ok(categoryService.updateCategory(id, categoryDto));
   }
 

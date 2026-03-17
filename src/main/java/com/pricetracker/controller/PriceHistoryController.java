@@ -140,8 +140,10 @@ public class PriceHistoryController {
   @GetMapping("/product/{productId}/min")
   public ResponseEntity<PriceHistoryDto> getMinPrice(
       @PathVariable Long productId,
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+      LocalDateTime from,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+      LocalDateTime to) {
 
     log.info("REST request to get min price for product id: {}", productId);
 
@@ -160,8 +162,10 @@ public class PriceHistoryController {
   @GetMapping("/product/{productId}/max")
   public ResponseEntity<PriceHistoryDto> getMaxPrice(
       @PathVariable Long productId,
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+      LocalDateTime from,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+      LocalDateTime to) {
 
     log.info("REST request to get max price for product id: {}", productId);
 
@@ -180,8 +184,10 @@ public class PriceHistoryController {
   @GetMapping("/product/{productId}/avg")
   public ResponseEntity<Double> getAveragePrice(
       @PathVariable Long productId,
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+      LocalDateTime from,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+      LocalDateTime to) {
 
     log.info("REST request to get average price for product id: {}", productId);
 

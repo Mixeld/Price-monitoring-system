@@ -3,10 +3,9 @@ package com.pricetracker.mapper;
 import com.pricetracker.dto.UserDto;
 import com.pricetracker.entity.Product;
 import com.pricetracker.entity.User;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
 
 @Component
 public class UserMapper {
@@ -19,7 +18,7 @@ public class UserMapper {
     List<Long> trackedProductIds = user.getTrackedProducts() != null
         ? user.getTrackedProducts().stream()
         .map(Product::getId)
-        .collect(Collectors.toList())
+        .toList()
         : List.of();
 
     return new UserDto(
@@ -27,7 +26,7 @@ public class UserMapper {
         user.getUsername(),
         user.getEmail(),
         user.getFullName(),
-        null, // Не передаем пароль в DTO
+        null,
         trackedProductIds
     );
   }
@@ -42,9 +41,7 @@ public class UserMapper {
     user.setUsername(dto.username());
     user.setEmail(dto.email());
     user.setFullName(dto.fullName());
-    user.setPasswordHash(dto.password()); // Будет закодирован позже в сервисе
-
-    // trackedProducts будет установлен отдельно в сервисе
+    user.setPasswordHash(dto.password());
 
     return user;
   }

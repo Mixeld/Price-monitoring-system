@@ -7,5 +7,7 @@ public record PriceHistoryDto(
     Double price,
     LocalDateTime dateRecorded,
     Long productId,
-    Long storeId  // Добавить, если нужно
-) {}
+    Long storeId
+) {
+
+}

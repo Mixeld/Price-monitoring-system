@@ -7,13 +7,11 @@ import com.pricetracker.mapper.ProductMapper;
 import com.pricetracker.repository.CategoryRepository;
 import com.pricetracker.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service

@@ -1,24 +1,28 @@
 package com.pricetracker.service.base;
 
-import com.pricetracker.exception.DuplicateResourceException; // Добавлен импорт
+import com.pricetracker.exception.DuplicateResourceException;
 import com.pricetracker.exception.ResourceNotFoundException;
+import java.util.Optional;
+import java.util.function.Function;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-import java.util.function.Function;
+@Slf4j
+public abstract class NamedEntityService<E, D, I> extends BaseService<E, D, I> {
 
-public abstract class NamedEntityService<T, D, ID> extends BaseService<T, D, ID> {
+  private final Function<String, Optional<E>> findByNameFunction;
+  private final NamedEntityService<E, D, I> self;
 
-  private final Function<String, Optional<T>> findByNameFunction;
-
-  protected NamedEntityService(JpaRepository<T, ID> repository,
+  protected NamedEntityService(JpaRepository<E, I> repository,
       String entityName,
-      Function<T, D> toDto,
-      Function<D, T> toEntity,
-      Function<String, Optional<T>> findByNameFunction) {
+      Function<E, D> toDto,
+      Function<D, E> toEntity,
+      Function<String, Optional<E>> findByNameFunction,
+      NamedEntityService<E, D, I> self) {
     super(repository, entityName, toDto, toEntity);
     this.findByNameFunction = findByNameFunction;
+    this.self = self;
   }
 
   @Transactional(readOnly = true)
@@ -37,20 +41,20 @@ public abstract class NamedEntityService<T, D, ID> extends BaseService<T, D, ID>
   @Override
   protected void validateBeforeCreate(D dto) {
     String name = extractNameFromDto(dto);
-    checkUnique(() -> existsByName(name), "name", name);
+    checkUnique(() -> self.existsByName(name), "name", name);
   }
 
   @Override
-  protected void validateBeforeUpdate(ID id, D dto, T entity) {
+  protected void validateBeforeUpdate(I id, D dto, E entity) {
     String newName = extractNameFromDto(dto);
     String oldName = extractNameFromEntity(entity);
 
-    if (!oldName.equals(newName) && existsByName(newName)) {
+    if (!oldName.equals(newName) && self.existsByName(newName)) {
       throw new DuplicateResourceException(entityName, "name", newName);
     }
   }
 
   protected abstract String extractNameFromDto(D dto);
 
-  protected abstract String extractNameFromEntity(T entity);
+  protected abstract String extractNameFromEntity(E entity);
 }

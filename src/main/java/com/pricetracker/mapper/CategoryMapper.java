@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class CategoryMapper {
+
   public CategoryDto toDto(Category category) {
     if (category == null) {
       return null;
@@ -16,7 +17,7 @@ public class CategoryMapper {
     );
   }
 
-  public Category toEntity(CategoryDto dto){
+  public Category toEntity(CategoryDto dto) {
     Category category = new Category();
     category.setName(dto.name());
     return category;

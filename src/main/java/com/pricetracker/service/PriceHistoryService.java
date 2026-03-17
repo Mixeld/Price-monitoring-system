@@ -10,16 +10,15 @@ import com.pricetracker.repository.PriceHistoryRepository;
 import com.pricetracker.repository.ProductRepository;
 import com.pricetracker.repository.StoreRepository;
 import com.pricetracker.service.base.BaseService;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Slf4j
 @Service

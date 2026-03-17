@@ -2,28 +2,27 @@ package com.pricetracker.service.base;
 
 import com.pricetracker.exception.DuplicateResourceException;
 import com.pricetracker.exception.ResourceNotFoundException;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 @Slf4j
-public abstract class BaseService<T, D, ID> {
+public abstract class BaseService<E, D, I> {
 
-  protected final JpaRepository<T, ID> repository;  // protected
-  protected final String entityName;                 // protected
-  protected final Function<T, D> toDto;              // protected
-  protected final Function<D, T> toEntity;           // protected
-  protected final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(getClass()); // Добавить явный логгер
+  protected final JpaRepository<E, I> repository;
+  protected final String entityName;
+  protected final Function<E, D> toDto;
+  protected final Function<D, E> toEntity;
+  protected final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(getClass());
 
-  protected BaseService(JpaRepository<T, ID> repository,
+  protected BaseService(JpaRepository<E, I> repository,
       String entityName,
-      Function<T, D> toDto,
-      Function<D, T> toEntity) {
+      Function<E, D> toDto,
+      Function<D, E> toEntity) {
     this.repository = repository;
     this.entityName = entityName;
     this.toDto = toDto;
@@ -32,14 +31,14 @@ public abstract class BaseService<T, D, ID> {
 
   @Transactional(readOnly = true)
   public List<D> getAll() {
-    log.debug("Getting all {}", entityName + "s");
+    log.debug("Getting all {}s", entityName);
     return repository.findAll().stream()
         .map(toDto)
         .toList();
   }
 
   @Transactional(readOnly = true)
-  public D getById(ID id) {
+  public D getById(I id) {
     log.debug("Getting {} by id: {}", entityName, id);
     return findEntityById(id)
         .map(toDto)
@@ -51,9 +50,9 @@ public abstract class BaseService<T, D, ID> {
     log.debug("Creating new {} with data: {}", entityName, dto);
     validateBeforeCreate(dto);
 
-    T entity = toEntity.apply(dto);
+    E entity = toEntity.apply(dto);
     beforeSave(entity);
-    T savedEntity = repository.save(entity);
+    E savedEntity = repository.save(entity);
     afterSave(savedEntity);
 
     log.info("{} created successfully with id: {}", entityName, getIdValue(savedEntity));
@@ -61,10 +60,10 @@ public abstract class BaseService<T, D, ID> {
   }
 
   @Transactional
-  public D update(ID id, D dto) {
+  public D update(I id, D dto) {
     log.debug("Updating {} with id: {}", entityName, id);
 
-    T entity = findEntityById(id)
+    E entity = findEntityById(id)
         .orElseThrow(() -> new ResourceNotFoundException(entityName, "id", id));
 
     validateBeforeUpdate(id, dto, entity);
@@ -76,10 +75,10 @@ public abstract class BaseService<T, D, ID> {
   }
 
   @Transactional
-  public void delete(ID id) {
+  public void delete(I id) {
     log.debug("Deleting {} with id: {}", entityName, id);
 
-    T entity = findEntityById(id)
+    E entity = findEntityById(id)
         .orElseThrow(() -> new ResourceNotFoundException(entityName, "id", id));
 
     validateBeforeDelete(entity);
@@ -91,38 +90,38 @@ public abstract class BaseService<T, D, ID> {
   }
 
   @Transactional(readOnly = true)
-  public boolean existsById(ID id) {
+  public boolean existsById(I id) {
     return repository.existsById(id);
   }
 
-  protected Optional<T> findEntityById(ID id) {
+  protected Optional<E> findEntityById(I id) {
     return repository.findById(id);
   }
 
-  protected void checkUnique(Supplier<Boolean> existsCheck, String fieldName, Object value) {
-    if (existsCheck.get()) {
+  protected void checkUnique(BooleanSupplier existsCheck, String fieldName, Object value) {
+    if (existsCheck.getAsBoolean()) {
       throw new DuplicateResourceException(entityName, fieldName, value);
     }
   }
 
-  // Hook methods for subclasses
+
   protected void validateBeforeCreate(D dto) {}
 
-  protected void validateBeforeUpdate(ID id, D dto, T entity) {}
+  protected void validateBeforeUpdate(I id, D dto, E entity) {}
 
-  protected void validateBeforeDelete(T entity) {}
+  protected void validateBeforeDelete(E entity) {}
 
-  protected void updateEntity(T entity, D dto) {}
+  protected void updateEntity(E entity, D dto) {}
 
-  protected void beforeSave(T entity) {}
+  protected void beforeSave(E entity) {}
 
-  protected void afterSave(T entity) {}
+  protected void afterSave(E entity) {}
 
-  protected void beforeUpdate(T entity) {}
+  protected void beforeUpdate(E entity) {}
 
-  protected void beforeDelete(T entity) {}
+  protected void beforeDelete(E entity) {}
 
   protected void afterDelete() {}
 
-  protected abstract ID getIdValue(T entity);
+  protected abstract I getIdValue(E entity);
 }

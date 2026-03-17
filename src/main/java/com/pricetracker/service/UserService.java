@@ -10,14 +10,19 @@ import com.pricetracker.mapper.UserMapper;
 import com.pricetracker.repository.ProductRepository;
 import com.pricetracker.repository.UserRepository;
 import com.pricetracker.service.base.NamedEntityService;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.DigestUtils;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+
+
 
 @Slf4j
 @Service
@@ -26,14 +31,21 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
   private final UserRepository userRepository;
   private final UserMapper mapper;
   private final ProductRepository productRepository;
+  private final UserService self;
+  private final PasswordEncoder passwordEncoder;
 
+  @Autowired
   public UserService(UserRepository userRepository,
       UserMapper mapper,
-      ProductRepository productRepository) {
-    super(userRepository, "User", mapper::toDto, mapper::toEntity, userRepository::findByEmail);
+      ProductRepository productRepository,
+      @Lazy UserService self) {
+    super(userRepository, "User", mapper::toDto, mapper::toEntity,
+        userRepository::findByEmail, self);
     this.userRepository = userRepository;
     this.mapper = mapper;
     this.productRepository = productRepository;
+    this.self = self;
+    this.passwordEncoder = new BCryptPasswordEncoder();
   }
 
   @Override
@@ -64,8 +76,10 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
   protected void validateBeforeUpdate(Long id, UserDto dto, User entity) {
     super.validateBeforeUpdate(id, dto, entity);
 
-    if (dto.username() != null &&
-        !dto.username().equals(entity.getUsername()) &&
+    if (dto.username() != null
+        &&
+        !dto.username().equals(entity.getUsername())
+        &&
         userRepository.findByUsername(dto.username()).isPresent()) {
       throw new DuplicateResourceException("User", "username", dto.username());
     }
@@ -73,7 +87,7 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
 
   @Override
   protected void validateBeforeDelete(User entity) {
-    // Можно добавить проверки перед удалением пользователя
+
   }
 
   @Override
@@ -87,7 +101,6 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
       entity.setPasswordHash(hashPassword(dto.password()));
     }
 
-    // Обновляем отслеживаемые продукты
     if (dto.trackedProductIds() != null) {
       List<Product> products = dto.trackedProductIds().stream()
           .map(productId -> productRepository.findById(productId)
@@ -101,13 +114,17 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
   protected void beforeSave(User entity) {
     entity.setCreatedAt(LocalDateTime.now());
     entity.setUpdatedAt(LocalDateTime.now());
-    if (entity.getPasswordHash() != null) {
+    if (entity.getPasswordHash() != null && !entity.getPasswordHash().startsWith("$2a$")) {
       entity.setPasswordHash(hashPassword(entity.getPasswordHash()));
     }
   }
 
   private String hashPassword(String password) {
-    return org.springframework.util.DigestUtils.md5DigestAsHex(password.getBytes());
+    return passwordEncoder.encode(password);
+  }
+
+  private boolean matchesPassword(String rawPassword, String encodedPassword) {
+    return passwordEncoder.matches(rawPassword, encodedPassword);
   }
 
   public UserDto getByUsername(String username) {
@@ -123,8 +140,7 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
     User user = userRepository.findByEmail(email)
         .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
 
-    String hashedPassword = hashPassword(password);
-    if (!hashedPassword.equals(user.getPasswordHash())) {
+    if (!matchesPassword(password, user.getPasswordHash())) {
       throw new BusinessException("Invalid credentials", "AUTH_001");
     }
 
@@ -139,8 +155,6 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
       userRepository.save(user);
     });
   }
-
-  // Новые методы для работы с отслеживаемыми продуктами
 
   @Transactional(readOnly = true)
   public List<Product> getTrackedProducts(Long userId) {

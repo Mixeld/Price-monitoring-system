@@ -21,9 +21,11 @@ public class StoreService {
   private static final String STORE_NOT_FOUND_BY_ID = "Store not found with id: ";
   private static final String STORE_NOT_FOUND_BY_NAME = "Store not found with name: ";
   private static final String STORE_ALREADY_EXISTS = "Store with name '%s' already exists";
-  private static final String STORE_WITH_URL_ALREADY_EXISTS = "Store with website URL '%s' already exists";
+  private static final String STORE_WITH_URL_ALREADY_EXISTS =
+      "Store with website URL '%s' already exists";
   private static final String CANNOT_DELETE_STORE_WITH_HISTORY =
-      "Cannot delete store '%s' because it has %d price history records. " +
+      "Cannot delete store '%s' because it has %d price history records. "
+          +
           "Delete these records first or reassign them to another store.";
 
   private final StoreRepository storeRepository;
@@ -35,7 +37,7 @@ public class StoreService {
     log.debug("Fetching all stores");
     return storeRepository.findAll().stream()
         .map(storeMapper::toDto)
-        .toList(); // Заменено collect(Collectors.toList()) на toList()
+        .toList();
   }
 
   @Transactional(readOnly = true)
@@ -63,7 +65,8 @@ public class StoreService {
           String.format(STORE_ALREADY_EXISTS, dto.name()));
     }
 
-    if (dto.websiteUrl() != null && !dto.websiteUrl().isBlank() &&
+    if (dto.websiteUrl() != null && !dto.websiteUrl().isBlank()
+        &&
         storeRepository.findByWebsiteUrl(dto.websiteUrl()).isPresent()) {
       throw new IllegalArgumentException(
           String.format(STORE_WITH_URL_ALREADY_EXISTS, dto.websiteUrl()));
@@ -84,14 +87,17 @@ public class StoreService {
     Store store = storeRepository.findById(id)
         .orElseThrow(() -> new EntityNotFoundException(STORE_NOT_FOUND_BY_ID + id));
 
-    if (!store.getName().equals(dto.name()) &&
+    if (!store.getName().equals(dto.name())
+        &&
         storeRepository.findByName(dto.name()).isPresent()) {
       throw new IllegalArgumentException(
           String.format(STORE_ALREADY_EXISTS, dto.name()));
     }
 
-    if (dto.websiteUrl() != null && !dto.websiteUrl().isBlank() &&
-        !dto.websiteUrl().equals(store.getWebsiteUrl()) &&
+    if (dto.websiteUrl() != null && !dto.websiteUrl().isBlank()
+        &&
+        !dto.websiteUrl().equals(store.getWebsiteUrl())
+        &&
         storeRepository.findByWebsiteUrl(dto.websiteUrl()).isPresent()) {
       throw new IllegalArgumentException(
           String.format(STORE_WITH_URL_ALREADY_EXISTS, dto.websiteUrl()));
@@ -112,7 +118,8 @@ public class StoreService {
     Store store = storeRepository.findById(id)
         .orElseThrow(() -> new EntityNotFoundException(STORE_NOT_FOUND_BY_ID + id));
 
-    List<PriceHistory> priceHistories = priceHistoryRepository.findByStoreIdOrderByDateRecordedDesc(id);
+    List<PriceHistory> priceHistories = priceHistoryRepository.findByStoreIdOrderByDateRecordedDesc(
+        id);
     if (!priceHistories.isEmpty()) {
       int historyCount = priceHistories.size();
       log.warn("Cannot delete store with id: {} because it has {} price history records",
