@@ -1,10 +1,12 @@
 package com.pricetracker.repository;
 
 import com.pricetracker.entity.Store;
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface StoreRepository extends JpaRepository<Store, Long> {
@@ -14,4 +16,11 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
   Optional<Store> findByWebsiteUrl(String websiteUrl);
 
   List<Store> findByNameContainingIgnoreCase(String namePattern);
+
+  @Override
+  @EntityGraph(attributePaths = {"priceHistories"})
+  List<Store> findAll();
+
+  @EntityGraph(attributePaths = {"priceHistories"})
+  Optional<Store> findWithHistoriesById(Long id);
 }

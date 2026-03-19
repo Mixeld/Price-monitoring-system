@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ProductController {
 
-  private final ProductService productService;    // Внедрение сервиса
+  private final ProductService productService;
 
   @GetMapping("/{id}")
   public ResponseEntity<ProductDto> getProductById(@PathVariable Long id) {

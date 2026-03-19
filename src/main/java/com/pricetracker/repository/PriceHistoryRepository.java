@@ -1,11 +1,13 @@
 package com.pricetracker.repository;
 
 import com.pricetracker.entity.PriceHistory;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PriceHistoryRepository extends JpaRepository<PriceHistory, Long> {
@@ -30,4 +32,8 @@ public interface PriceHistoryRepository extends JpaRepository<PriceHistory, Long
       Long productId, LocalDateTime start, LocalDateTime end);
 
   List<PriceHistory> findByStoreIdOrderByDateRecordedDesc(Long storeId);
+
+  @Override
+  @EntityGraph(attributePaths = {"store"})
+  List<PriceHistory> findAll();
 }
