@@ -1,13 +1,14 @@
 package com.pricetracker.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record PriceHistoryDto(
     Long id,
-    Double price,
+    BigDecimal price,
     LocalDateTime dateRecorded,
     Long productId,
-    Long storeId
+    Long storeId,
+    String storeName
 ) {
-
 }

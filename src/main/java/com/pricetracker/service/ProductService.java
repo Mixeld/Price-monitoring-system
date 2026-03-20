@@ -7,13 +7,18 @@ import com.pricetracker.mapper.ProductMapper;
 import com.pricetracker.repository.CategoryRepository;
 import com.pricetracker.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
+import java.util.List;
+
+/**
+ * Сервис, реализующий бизнес-логику работы с товарами.
+ * <p>
+ * Класс НЕ final, так как используется @Transactional.
+ * </p>
+ */
 @Service
 @RequiredArgsConstructor
 public class ProductService {
@@ -22,87 +27,105 @@ public class ProductService {
   private final CategoryRepository categoryRepository;
   private final ProductMapper productMapper;
 
+  /**
+   * Получить товар по ID.
+   */
   @Transactional(readOnly = true)
-  public ProductDto getProductById(Long id) {
-    log.debug("Fetching product by id: {}", id);
+  public ProductDto getProductById(final Long id) {
     return productRepository.findById(id)
         .map(productMapper::toDto)
-        .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
+        .orElseThrow(() -> new EntityNotFoundException(
+            "Product not found with id: " + id));
   }
 
+  /**
+   * Получить список товаров (всех или по категории).
+   */
   @Transactional(readOnly = true)
-  public List<ProductDto> getProducts(String categoryName) {
-    log.debug("Fetching products with category: {}", categoryName);
-
+  public List<ProductDto> getProducts(final String categoryName) {
     if (categoryName != null && !categoryName.isBlank()) {
       return productRepository.findByCategoryName(categoryName)
           .stream()
           .map(productMapper::toDto)
           .toList();
     }
-
     return productRepository.findAll().stream()
         .map(productMapper::toDto)
         .toList();
   }
 
+  /**
+   * Сохранить новый товар.
+   */
   @Transactional
-  public ProductDto saveProduct(ProductDto dto) {
-    log.debug("Saving new product: {}", dto.name());
-
+  public ProductDto saveProduct(final ProductDto dto) {
     Product product = productMapper.toEntity(dto);
 
-    if (dto.category() != null) {
-      Category category = categoryRepository.findByName(dto.category())
+    // Используем dto.categoryName()
+    if (dto.categoryName() != null) {
+      Category category = categoryRepository.findByName(dto.categoryName())
           .orElseGet(() -> {
             Category newCat = new Category();
-            newCat.setName(dto.category());
+            newCat.setName(dto.categoryName());
             return categoryRepository.save(newCat);
           });
       product.setCategory(category);
     }
 
     Product savedProduct = productRepository.save(product);
-    log.info("Product saved successfully with id: {}", savedProduct.getId());
-
     return productMapper.toDto(savedProduct);
   }
 
+  /**
+   * Обновить существующий товар.
+   */
   @Transactional
-  public ProductDto updateProduct(Long id, ProductDto dto) {
-    log.debug("Updating product with id: {}", id);
-
+  public ProductDto updateProduct(final Long id, final ProductDto dto) {
     Product product = productRepository.findById(id)
-        .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + id));
+        .orElseThrow(() -> new EntityNotFoundException(
+            "Product not found with id: " + id));
 
     product.setName(dto.name());
-    product.setCurrentPrice(dto.price());
+    product.setCurrentPrice(dto.currentPrice());
+    product.setDescription(dto.description());
 
-    if (dto.category() != null) {
-      Category category = categoryRepository.findByName(dto.category())
+    if (dto.categoryName() != null) {
+      Category category = categoryRepository.findByName(dto.categoryName())
           .orElseGet(() -> {
             Category newCat = new Category();
-            newCat.setName(dto.category());
+            newCat.setName(dto.categoryName());
             return categoryRepository.save(newCat);
           });
       product.setCategory(category);
-    } else {
-      product.setCategory(null);
     }
 
-    log.info("Product updated successfully with id: {}", id);
-    return productMapper.toDto(product);
+    Product updatedProduct = productRepository.save(product);
+    return productMapper.toDto(updatedProduct);
   }
 
+  /**
+   * Удалить товар.
+   */
   @Transactional
-  public void deleteProduct(Long id) {
-    log.debug("Deleting product with id: {}", id);
-
+  public void deleteProduct(final Long id) {
     if (!productRepository.existsById(id)) {
-      throw new EntityNotFoundException("Product not found with id: " + id);
+      throw new EntityNotFoundException(
+          "Cannot delete. Product not found with id: " + id);
     }
-
     productRepository.deleteById(id);
-    log.info("Product deleted successfully with id: {}", id);
+  }
+
+  /**
+   * Демонстрация транзакций (Пункт 6 ТЗ).
+   */
+  @Transactional
+  public void demoTransaction(final boolean triggerError) {
+    Category cat = new Category();
+    cat.setName("ROLLBACK_TEST_CATEGORY");
+    categoryRepository.save(cat);
+
+    if (triggerError) {
+      throw new RuntimeException("ИСКУССТВЕННАЯ ОШИБКА ДЛЯ ТЕСТА ТРАНЗАКЦИИ");
+    }
   }
 }

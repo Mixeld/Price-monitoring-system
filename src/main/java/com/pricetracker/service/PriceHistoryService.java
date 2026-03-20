@@ -1,282 +1,108 @@
 package com.pricetracker.service;
 
 import com.pricetracker.dto.PriceHistoryDto;
-import com.pricetracker.dto.PriceStatsDto;
 import com.pricetracker.entity.PriceHistory;
 import com.pricetracker.entity.Product;
-import com.pricetracker.exception.ResourceNotFoundException;
+import com.pricetracker.entity.Store;
 import com.pricetracker.mapper.PriceHistoryMapper;
 import com.pricetracker.repository.PriceHistoryRepository;
 import com.pricetracker.repository.ProductRepository;
 import com.pricetracker.repository.StoreRepository;
-import com.pricetracker.service.base.BaseService;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDateTime;
-import java.util.List;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Slf4j
 @Service
-public class PriceHistoryService extends BaseService<PriceHistory, PriceHistoryDto, Long> {
+@RequiredArgsConstructor
+public class PriceHistoryService {
 
-  private final PriceHistoryRepository priceHistoryRepository;
+  private final PriceHistoryRepository historyRepository;
   private final ProductRepository productRepository;
   private final StoreRepository storeRepository;
   private final PriceHistoryMapper mapper;
 
-  // Используем @Lazy для избежания циклической зависимости
-  private final PriceHistoryService self;
-
-  private static final String PRODUCT = "Product";
-
-  @Autowired
-  public PriceHistoryService(PriceHistoryRepository priceHistoryRepository,
-      ProductRepository productRepository,
-      StoreRepository storeRepository,
-      PriceHistoryMapper mapper,
-      @Lazy PriceHistoryService self) {  // @Lazy обязательно!
-    super(priceHistoryRepository, "PriceHistory", mapper::toDto, mapper::toEntity);
-    this.priceHistoryRepository = priceHistoryRepository;
-    this.productRepository = productRepository;
-    this.storeRepository = storeRepository;
-    this.mapper = mapper;
-    this.self = self;
-  }
-
-  @Override
-  protected Long getIdValue(PriceHistory entity) {
-    return entity.getId();
-  }
-
-  @Override
-  protected void validateBeforeCreate(PriceHistoryDto dto) {
-    if (!productRepository.existsById(dto.productId())) {
-      throw new ResourceNotFoundException(PRODUCT, "id", dto.productId());
-    }
-  }
-
-  @Override
-  protected void updateEntity(PriceHistory entity, PriceHistoryDto dto) {
-    entity.setPrice(BigDecimal.valueOf(dto.price()));
-    entity.setDateRecorded(dto.dateRecorded() != null ? dto.dateRecorded() : LocalDateTime.now());
-
-    if (dto.productId() != null && !dto.productId().equals(entity.getProduct().getId())) {
-      Product product = productRepository.findById(dto.productId())
-          .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, "id", dto.productId()));
-      entity.setProduct(product);
-    }
-  }
-
-  @Override
-  protected void beforeSave(PriceHistory entity) {
-    if (entity.getDateRecorded() == null) {
-      entity.setDateRecorded(LocalDateTime.now());
-    }
-  }
-
-  @Transactional(readOnly = true)
-  public PriceHistoryDto getHistoryById(Long id) {
-    log.debug("Getting price history by id: {}", id);
-    // Вызов через self для правильной работы транзакционного прокси
-    return self.getById(id);
-  }
-
-  @Transactional(readOnly = true)
-  public List<PriceHistoryDto> getHistoryForProduct(Long productId) {
-    log.debug("Getting price history for product id: {}", productId);
-    return priceHistoryRepository.findByProductIdOrderByDateRecordedDesc(productId)
-        .stream()
-        .map(mapper::toDto)
-        .toList();
-  }
-
-  @Transactional(readOnly = true)
-  public List<PriceHistoryDto> getHistoryForProductInDateRange(
-      Long productId, LocalDateTime from, LocalDateTime to) {
-    log.debug("Getting price history for product {} between {} and {}", productId, from, to);
-    return priceHistoryRepository.findByProductIdAndDateRecordedBetweenOrderByDateRecordedAsc(
-            productId, from, to)
-        .stream()
-        .map(mapper::toDto)
-        .toList();
-  }
-
-  @Transactional(readOnly = true)
-  public PriceHistoryDto getLatestPrice(Long productId) {
-    log.debug("Getting latest price for product id: {}", productId);
-    return priceHistoryRepository.findFirstByProductIdOrderByDateRecordedDesc(productId)
-        .map(mapper::toDto)
-        .orElse(null);
-  }
-
   @Transactional
   public PriceHistoryDto recordPrice(PriceHistoryDto dto) {
-    log.debug("Recording new price for product: {}", dto.productId());
-    // ВАЖНО: используем self.create(), а не super.create() или this.create()
-    return self.create(dto);
-  }
+    PriceHistory history = mapper.toEntity(dto);
 
-  @Transactional
-  public void deleteHistoryRecord(Long id) {
-    log.debug("Deleting price history record: {}", id);
-    // ВАЖНО: используем self.delete(), а не super.delete() или this.delete()
-    self.delete(id);
-  }
+    Product product = productRepository.findById(dto.productId())
+        .orElseThrow(() -> new EntityNotFoundException("Product not found: " + dto.productId()));
+    history.setProduct(product);
 
-  @Transactional
-  public void deleteHistoryForProduct(Long productId) {
-    log.debug("Deleting all price history for product: {}", productId);
-    priceHistoryRepository.deleteByProductId(productId);
-  }
-
-  @Transactional(readOnly = true)
-  public long countHistoryForProduct(Long productId) {
-    return priceHistoryRepository.countByProductId(productId);
-  }
-
-  @Transactional(readOnly = true)
-  public PriceHistoryDto getMinPrice(Long productId, LocalDateTime from, LocalDateTime to) {
-    log.debug("Getting min price for product {} between {} and {}", productId, from, to);
-
-    List<PriceHistory> histories = priceHistoryRepository
-        .findByProductIdAndDateRecordedBetweenOrderByPriceAsc(productId, from, to);
-
-    return histories.isEmpty() ? null : mapper.toDto(histories.get(0));
-  }
-
-  @Transactional(readOnly = true)
-  public PriceHistoryDto getMaxPrice(Long productId, LocalDateTime from, LocalDateTime to) {
-    log.debug("Getting max price for product {} between {} and {}", productId, from, to);
-
-    List<PriceHistory> histories = priceHistoryRepository
-        .findByProductIdAndDateRecordedBetweenOrderByPriceDesc(productId, from, to);
-
-    return histories.isEmpty() ? null : mapper.toDto(histories.get(0));
-  }
-
-  @Transactional(readOnly = true)
-  public Double getAveragePrice(Long productId, LocalDateTime from, LocalDateTime to) {
-    log.debug("Getting average price for product {} between {} and {}", productId, from, to);
-
-    List<PriceHistory> histories = priceHistoryRepository
-        .findByProductIdAndDateRecordedBetweenOrderByDateRecordedAsc(productId, from, to);
-
-    if (histories.isEmpty()) {
-      return 0.0;
+    if (dto.storeId() != null) {
+      Store store = storeRepository.findById(dto.storeId())
+          .orElseThrow(() -> new EntityNotFoundException("Store not found: " + dto.storeId()));
+      history.setStore(store);
     }
 
-    return histories.stream()
-        .map(PriceHistory::getPrice)
-        .reduce(BigDecimal.ZERO, BigDecimal::add)
-        .divide(BigDecimal.valueOf(histories.size()), 2, RoundingMode.HALF_UP)
-        .doubleValue();
+    PriceHistory saved = historyRepository.save(history);
+
+    product.setCurrentPrice(dto.price());
+    productRepository.save(product);
+
+    return mapper.toDto(saved);
   }
 
+  /**
+   * Метод, демонстрирующий проблему N+1 (Lazy Loading).
+   */
   @Transactional(readOnly = true)
-  public boolean existsForProduct(Long productId) {
-    return priceHistoryRepository.countByProductId(productId) > 0;
-  }
+  public List<PriceHistoryDto> getHistoryWithNPlusOne(Long productId) {
+    log.info("--- Starting N+1 demonstration (Standard Find) ---");
 
-  @Transactional(readOnly = true)
-  public PriceStatsDto getPriceStats(Long productId, int days) {
-    log.debug("Getting price stats for product {} for last {} days", productId, days);
+    // 1. Основной запрос к таблице истории
+    List<PriceHistory> historyList = historyRepository.findByProductIdOrderByDateRecordedDesc(productId);
 
-    LocalDateTime end = LocalDateTime.now();
-    LocalDateTime start = end.minusDays(days);
+    log.info("Primary SQL query executed. Records found: {}", historyList.size());
 
-    List<PriceHistory> histories = priceHistoryRepository
-        .findByProductIdAndDateRecordedBetweenOrderByDateRecordedAsc(productId, start, end);
+    List<PriceHistoryDto> result = new ArrayList<>();
+    int queryCounter = 1;
 
-    if (histories.isEmpty()) {
-      return null;
+    // 2. Итерация по списку. Здесь будут происходить дополнительные запросы.
+    for (PriceHistory ph : historyList) {
+      if (ph.getStore() != null) {
+        log.info("Accessing Store with ID: {}. Hibernate will execute SELECT statement.", ph.getStore().getId());
+        // Обращение к прокси-объекту Store вызывает SQL-запрос
+        queryCounter++;
+      }
+      result.add(mapper.toDto(ph));
     }
 
-    Product product = productRepository.findById(productId)
-        .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, "id", productId));
+    log.info("--- Summary: Total queries executed: {} (1 primary + {} additional) ---", queryCounter, queryCounter - 1);
 
-    BigDecimal min = histories.stream()
-        .map(PriceHistory::getPrice)
-        .min(BigDecimal::compareTo)
-        .orElse(BigDecimal.ZERO);
-
-    BigDecimal max = histories.stream()
-        .map(PriceHistory::getPrice)
-        .max(BigDecimal::compareTo)
-        .orElse(BigDecimal.ZERO);
-
-    BigDecimal sum = histories.stream()
-        .map(PriceHistory::getPrice)
-        .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-    BigDecimal avg = sum.divide(BigDecimal.valueOf(histories.size()), 2, RoundingMode.HALF_UP);
-
-    BigDecimal current = histories.get(histories.size() - 1).getPrice();
-    BigDecimal first = histories.get(0).getPrice();
-    BigDecimal change = current.subtract(first);
-
-    double changePercent = first.compareTo(BigDecimal.ZERO) != 0
-        ? change.multiply(BigDecimal.valueOf(100))
-        .divide(first, 2, RoundingMode.HALF_UP)
-        .doubleValue()
-        : 0.0;
-
-    return new PriceStatsDto(
-        productId,
-        product.getName(),
-        min.doubleValue(),
-        max.doubleValue(),
-        avg.doubleValue(),
-        current.doubleValue(),
-        change.doubleValue(),
-        changePercent,
-        histories.get(0).getDateRecorded(),
-        histories.get(histories.size() - 1).getDateRecorded(),
-        histories.size()
-    );
+    return result;
   }
 
+  /**
+   * Метод, демонстрирующий решение проблемы N+1 (EntityGraph).
+   */
   @Transactional(readOnly = true)
-  public List<PriceHistoryDto> getHistoryForStore(Long storeId) {
-    log.debug("Getting price history for store: {}", storeId);
+  public List<PriceHistoryDto> getHistoryOptimized(Long productId) {
+    log.info("--- Starting Optimized demonstration (EntityGraph) ---");
 
-    if (!storeRepository.existsById(storeId)) {
-      throw new ResourceNotFoundException("Store", "id", storeId);
+    // 1. Основной запрос с JOIN FETCH
+    List<PriceHistory> historyList = historyRepository.findWithStoreByProductId(productId);
+
+    log.info("Primary SQL query executed with JOIN. Records found: {}", historyList.size());
+
+    List<PriceHistoryDto> result = new ArrayList<>();
+
+    // 2. Итерация по списку. Данные уже в памяти, запросов не будет.
+    for (PriceHistory ph : historyList) {
+      if (ph.getStore() != null) {
+        log.info("Accessing Store with ID: {}. Data already loaded in memory.", ph.getStore().getId());
+      }
+      result.add(mapper.toDto(ph));
     }
 
-    return priceHistoryRepository.findByStoreIdOrderByDateRecordedDesc(storeId)
-        .stream()
-        .map(mapper::toDto)
-        .toList();
-  }
+    log.info("--- Summary: Total queries executed: 1 ---");
 
-  @Transactional
-  public List<PriceHistoryDto> addBulkPrices(Long productId, List<Double> prices) {
-    log.debug("Adding {} bulk prices for product: {}", prices.size(), productId);
-
-    Product product = productRepository.findById(productId)
-        .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, "id", productId));
-
-    List<PriceHistory> histories = prices.stream()
-        .map(price -> PriceHistory.builder()
-            .product(product)
-            .price(BigDecimal.valueOf(price))
-            .dateRecorded(LocalDateTime.now())
-            .build())
-        .toList();
-
-    return priceHistoryRepository.saveAll(histories).stream()
-        .map(mapper::toDto)
-        .toList();
-  }
-
-  @Transactional
-  public void deleteByProductId(Long productId) {
-    log.debug("Deleting all price history for product id: {}", productId);
-    priceHistoryRepository.deleteByProductId(productId);
+    return result;
   }
 }
