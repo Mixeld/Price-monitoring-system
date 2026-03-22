@@ -7,18 +7,11 @@ import com.pricetracker.mapper.ProductMapper;
 import com.pricetracker.repository.CategoryRepository;
 import com.pricetracker.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
-/**
- * Сервис, реализующий бизнес-логику работы с товарами.
- * <p>
- * Класс НЕ final, так как используется @Transactional.
- * </p>
- */
 @Service
 @RequiredArgsConstructor
 public class ProductService {
@@ -27,9 +20,6 @@ public class ProductService {
   private final CategoryRepository categoryRepository;
   private final ProductMapper productMapper;
 
-  /**
-   * Получить товар по ID.
-   */
   @Transactional(readOnly = true)
   public ProductDto getProductById(final Long id) {
     return productRepository.findById(id)
@@ -38,9 +28,6 @@ public class ProductService {
             "Product not found with id: " + id));
   }
 
-  /**
-   * Получить список товаров (всех или по категории).
-   */
   @Transactional(readOnly = true)
   public List<ProductDto> getProducts(final String categoryName) {
     if (categoryName != null && !categoryName.isBlank()) {
@@ -54,9 +41,6 @@ public class ProductService {
         .toList();
   }
 
-  /**
-   * Сохранить новый товар.
-   */
   @Transactional
   public ProductDto saveProduct(final ProductDto dto) {
     Product product = productMapper.toEntity(dto);
@@ -76,9 +60,7 @@ public class ProductService {
     return productMapper.toDto(savedProduct);
   }
 
-  /**
-   * Обновить существующий товар.
-   */
+
   @Transactional
   public ProductDto updateProduct(final Long id, final ProductDto dto) {
     Product product = productRepository.findById(id)
@@ -103,9 +85,7 @@ public class ProductService {
     return productMapper.toDto(updatedProduct);
   }
 
-  /**
-   * Удалить товар.
-   */
+
   @Transactional
   public void deleteProduct(final Long id) {
     if (!productRepository.existsById(id)) {
@@ -115,9 +95,6 @@ public class ProductService {
     productRepository.deleteById(id);
   }
 
-  /**
-   * Демонстрация транзакций (Пункт 6 ТЗ).
-   */
   @Transactional
   public void demoTransaction(final boolean triggerError) {
     Category cat = new Category();

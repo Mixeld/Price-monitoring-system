@@ -49,6 +49,7 @@ public class CategoryController {
   public ResponseEntity<CategoryDto> updateCategory(
       @PathVariable Long id,
       @RequestBody CategoryDto categoryDto) {
+
     return ResponseEntity.ok(categoryService.updateCategory(id, categoryDto));
   }
 

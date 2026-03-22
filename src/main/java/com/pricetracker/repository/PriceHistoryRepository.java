@@ -1,14 +1,15 @@
 package com.pricetracker.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import com.pricetracker.entity.PriceHistory;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+
 
 @Repository
 public interface PriceHistoryRepository extends JpaRepository<PriceHistory, Long> {
@@ -18,6 +19,7 @@ public interface PriceHistoryRepository extends JpaRepository<PriceHistory, Long
   List<PriceHistory> findByStoreIdOrderByDateRecordedDesc(Long storeId);
 
   long countByProductId(Long productId);
+
   long countByStoreId(Long storeId);
 
   void deleteByProductId(Long productId);
@@ -34,7 +36,8 @@ public interface PriceHistoryRepository extends JpaRepository<PriceHistory, Long
       Long productId, LocalDateTime start, LocalDateTime end);
 
   @EntityGraph(attributePaths = {"store"})
-  @Query("SELECT ph FROM PriceHistory ph WHERE ph.product.id = :productId ORDER BY ph.dateRecorded DESC")
+  @Query("SELECT ph FROM PriceHistory ph WHERE ph.product.id = "
+      + ":productId ORDER BY ph.dateRecorded DESC")
   List<PriceHistory> findWithStoreByProductId(Long productId);
 
   @Override

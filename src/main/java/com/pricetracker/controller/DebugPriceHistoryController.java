@@ -4,14 +4,13 @@ import com.pricetracker.entity.PriceHistory;
 import com.pricetracker.entity.Store;
 import com.pricetracker.repository.PriceHistoryRepository;
 import com.pricetracker.repository.StoreRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -62,7 +61,8 @@ public class DebugPriceHistoryController {
         .orElseThrow(() -> new RuntimeException("Store not found"));
     log.info("1-й запрос: получили магазин '{}'", store.getName());
 
-    List<PriceHistory> histories = priceHistoryRepository.findByStoreIdOrderByDateRecordedDesc(storeId);
+    List<PriceHistory> histories = priceHistoryRepository.findByStoreIdOrderByDateRecordedDesc(
+        storeId);
     log.info("2-й запрос: получили {} записей истории для магазина", histories.size());
 
     log.info("=".repeat(70));
@@ -132,7 +132,6 @@ public class DebugPriceHistoryController {
     log.info("РЕШЕНИЕ ПРОБЛЕМЫ N+1: PriceHistory -> Store с EntityGraph");
     log.info("=".repeat(70));
 
-    // Теперь этот метод будет использовать EntityGraph
     List<PriceHistory> histories = priceHistoryRepository.findAll();
     log.info("1 запрос с JOIN: получили {} записей истории цен с магазинами", histories.size());
 
