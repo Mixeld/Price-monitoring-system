@@ -2,9 +2,14 @@ package com.pricetracker.controller;
 
 import com.pricetracker.dto.ProductDto;
 import com.pricetracker.service.ProductService;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -53,5 +58,18 @@ public class ProductController {
   public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
     productService.deleteProduct(id);
     return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping("/search")
+  public Page<ProductDto> searchProducts(
+      @RequestParam(required = false) final String category,
+      @RequestParam(required = false) final BigDecimal minPrice,
+      @RequestParam(required = false) final BigDecimal maxPrice,
+      @RequestParam(defaultValue = "0") final int page,
+      @RequestParam(defaultValue = "10") final int size,
+      @RequestParam(defaultValue = "false") final boolean useNative
+  ) {
+    Pageable pageable = PageRequest.of(page, size, Sort.by("id"));
+    return productService.searchProducts(category, minPrice, maxPrice, pageable, useNative);
   }
 }
