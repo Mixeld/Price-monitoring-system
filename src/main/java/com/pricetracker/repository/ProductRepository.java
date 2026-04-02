@@ -30,7 +30,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
       Pageable pageable
   );
 
-  // Задача 2: Аналогичный запрос через native query
   @Query(value = "SELECT p.* FROM products p " +
       "LEFT JOIN categories c ON p.category_id = c.id " +
       "WHERE (:category IS NULL OR c.name = :category) " +
