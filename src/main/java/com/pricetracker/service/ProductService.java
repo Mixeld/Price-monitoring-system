@@ -1,23 +1,23 @@
 package com.pricetracker.service;
 
+import com.pricetracker.service.cache.SearchCache;
 import com.pricetracker.dto.ProductDto;
-import com.pricetracker.entity.Category;
 import com.pricetracker.entity.Product;
+import com.pricetracker.entity.Category;
 import com.pricetracker.mapper.ProductMapper;
-import com.pricetracker.repository.CategoryRepository;
 import com.pricetracker.repository.ProductRepository;
-import com.pricetracker.service.cache.ProductSearchKey;
-import jakarta.persistence.EntityNotFoundException;
-import java.math.BigDecimal;
-import java.util.List;
+import com.pricetracker.repository.CategoryRepository;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -27,136 +27,125 @@ public class ProductService {
   private final ProductRepository productRepository;
   private final CategoryRepository categoryRepository;
   private final ProductMapper productMapper;
-
-  private final Map<ProductSearchKey, Page<ProductDto>> searchCache = new ConcurrentHashMap<>();
-
+  private final SearchCache searchCache;
 
   @Transactional(readOnly = true)
-  public ProductDto getProductById(final Long id) {
-    return productRepository.findById(id)
-        .map(productMapper::toDto)
-        .orElseThrow(() -> new EntityNotFoundException(
-            "Product not found with id: " + id));
+  public ProductDto getProductById(Long id) {
+    Product product = productRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+    return productMapper.toDto(product);
   }
 
   @Transactional(readOnly = true)
-  public List<ProductDto> getProducts(final String categoryName) {
-    if (categoryName != null && !categoryName.isBlank()) {
-      return productRepository.findByCategoryName(categoryName)
-          .stream()
-          .map(productMapper::toDto)
-          .toList();
+  public List<ProductDto> getProducts(String category) {
+    List<Product> products;
+    if (category != null && !category.isEmpty()) {
+      products = productRepository.findByCategoryName(category);
+    } else {
+      products = productRepository.findAll();
     }
-    return productRepository.findAll().stream()
+    return products.stream()
         .map(productMapper::toDto)
         .toList();
   }
 
   @Transactional
-  public ProductDto saveProduct(final ProductDto dto) {
-    Product product = productMapper.toEntity(dto);
+  public ProductDto saveProduct(ProductDto productDto) {
+    Product product = productMapper.toEntity(productDto);
+    Product saved = productRepository.save(product);
 
-    if (dto.categoryName() != null) {
-      Category category = categoryRepository.findByName(dto.categoryName())
-          .orElseGet(() -> {
-            Category newCat = new Category();
-            newCat.setName(dto.categoryName());
-            return categoryRepository.save(newCat);
-          });
-      product.setCategory(category);
-    }
+    searchCache.invalidateAll();
+    log.info("Cache invalidated after product creation");
 
-    Product savedProduct = productRepository.save(product);
-    invalidateCache();
-    return productMapper.toDto(savedProduct);
+    return productMapper.toDto(saved);
   }
 
-
-
   @Transactional
-  public ProductDto updateProduct(final Long id, final ProductDto dto) {
-    Product product = productRepository.findById(id)
-        .orElseThrow(() -> new EntityNotFoundException("Product not found: " + id));
+  public ProductDto updateProduct(Long id, ProductDto productDto) {
+    Product existing = productRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
 
-    product.setName(dto.name());
-    product.setCurrentPrice(dto.currentPrice());
-    product.setDescription(dto.description());
+    productMapper.updateEntity(existing, productDto);
+    Product updated = productRepository.save(existing);
 
-    if (dto.categoryName() != null) {
-      Category category = categoryRepository.findByName(dto.categoryName())
-          .orElseGet(() -> {
-            Category newCat = new Category();
-            newCat.setName(dto.categoryName());
-            return categoryRepository.save(newCat);
-          });
-      product.setCategory(category);
-    }
+    searchCache.invalidateAll();
+    log.info("Cache invalidated after product update");
 
-    Product updatedProduct = productRepository.save(product);
-    invalidateCache();
-    return productMapper.toDto(updatedProduct);
+    return productMapper.toDto(updated);
   }
 
-
   @Transactional
-  public void deleteProduct(final Long id) {
-    if (!productRepository.existsById(id)) {
-      throw new EntityNotFoundException("Cannot delete. Product not found: " + id);
-    }
+  public void deleteProduct(Long id) {
     productRepository.deleteById(id);
-    invalidateCache();
+
+    searchCache.invalidateAll();
+    log.info("Cache invalidated after product deletion");
   }
 
-  @Transactional
-  public void demoTransaction(final boolean triggerError) {
-    Category cat = new Category();
-    cat.setName("ROLLBACK_TEST_CATEGORY");
-    categoryRepository.save(cat);
-
-    if (triggerError) {
-      throw new RuntimeException("ИСКУССТВЕННАЯ ОШИБКА ДЛЯ ТЕСТА ТРАНЗАКЦИИ");
-    }
-  }
-
-  @Transactional (readOnly = true)
+  @Transactional(readOnly = true)
   public Page<ProductDto> searchProducts(
-      final String categoryName,
-      final BigDecimal minPrice,
-      final BigDecimal maxPrice,
-      final Pageable pageable,
-      final boolean useNative){
+      String category,
+      BigDecimal minPrice,
+      BigDecimal maxPrice,
+      Pageable pageable,
+      boolean useNative
+  ) {
 
-    ProductSearchKey key = new ProductSearchKey(
-        categoryName, minPrice, maxPrice,
-        pageable.getPageNumber(), pageable.getPageSize(), useNative
-    );
+    SearchCache.SearchKey cacheKey = SearchCache.SearchKey.builder()
+        .category(category)
+        .minPrice(minPrice)
+        .maxPrice(maxPrice)
+        .page(pageable.getPageNumber())
+        .size(pageable.getPageSize())
+        .sort(pageable.getSort().toString())
+        .useNative(useNative)
+        .build();
 
-    if (searchCache.containsKey(key)) {
-      log.info ("Возврат КЭШ-данных: {}", key);
-      return searchCache.get(key);
+    Optional<Page<ProductDto>> cached = searchCache.get(cacheKey);
+    if (cached.isPresent()) {
+      log.info("Cache HIT for key: {}", cacheKey);
+      return cached.get();
     }
 
-    log.info ("Запрос к БД (Native: {})...", useNative);
-    Page<Product> pageResult;
+    log.info("Cache MISS for key: {}", cacheKey);
 
-    if(useNative) {
-      pageResult = productRepository.searchProductsNative(
-          categoryName, minPrice, maxPrice, pageable);
+    Page<Product> productPage;
+
+    if (useNative) {
+      log.info("Executing NATIVE query with filters: category={}, minPrice={}, maxPrice={}, sort={}",
+          category, minPrice, maxPrice, pageable.getSort());
+      productPage = productRepository.searchProductsNative(
+          category, minPrice, maxPrice, pageable
+      );
     } else {
-      pageResult = productRepository.searchProductsJpql(
-          categoryName, minPrice, maxPrice, pageable);
-      }
+      log.info("Executing JPQL query with filters: category={}, minPrice={}, maxPrice={}, sort={}",
+          category, minPrice, maxPrice, pageable.getSort());
+      productPage = productRepository.searchProductsJpql(
+          category, minPrice, maxPrice, pageable
+      );
+    }
 
+    Page<ProductDto> dtoPage = productPage.map(productMapper::toDto);
 
-    Page<ProductDto> dtoPage = pageResult.map(productMapper::toDto);
+    searchCache.put(cacheKey, dtoPage);
+    log.info("Result cached with key: {}", cacheKey);
+    log.info("Cache size after save: {}", searchCache.getSize());
 
-    searchCache.put(key, dtoPage);
     return dtoPage;
   }
 
-  private void invalidateCache() {
-    log.info("Данные изменились. Кэш очищен.");
-    searchCache.clear();
+  @Transactional(readOnly = true)
+  public Map<String, Object> getCacheStats() {
+    return Map.of(
+        "cacheSize", searchCache.getSize(),
+        "cacheKeys", searchCache.getKeys()
+    );
   }
 
+
+  @Transactional
+  public void clearCache() {
+    searchCache.invalidateAll();
+    log.info("Cache manually cleared");
+  }
 }

@@ -42,7 +42,7 @@ public class PriceHistoryService {
 
     PriceHistory saved = historyRepository.save(history);
 
-    product.setCurrentPrice(dto.price());
+    product.setPrice(dto.price());
     productRepository.save(product);
 
     return mapper.toDto(saved);

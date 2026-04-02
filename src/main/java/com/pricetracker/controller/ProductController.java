@@ -4,6 +4,7 @@ import com.pricetracker.dto.ProductDto;
 import com.pricetracker.service.ProductService;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -11,15 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/products")
@@ -67,9 +60,39 @@ public class ProductController {
       @RequestParam(required = false) final BigDecimal maxPrice,
       @RequestParam(defaultValue = "0") final int page,
       @RequestParam(defaultValue = "10") final int size,
+      @RequestParam(defaultValue = "id,asc") final String sort,
       @RequestParam(defaultValue = "false") final boolean useNative
   ) {
-    Pageable pageable = PageRequest.of(page, size, Sort.by("id"));
+    // Создаем Sort из параметра
+    Sort sortOrder = parseSortParameter(sort);
+    Pageable pageable = PageRequest.of(page, size, sortOrder);
+
     return productService.searchProducts(category, minPrice, maxPrice, pageable, useNative);
+  }
+
+  private Sort parseSortParameter(String sort) {
+    if (sort == null || sort.isBlank()) {
+      return Sort.by("id").ascending();
+    }
+
+    String[] parts = sort.split(",");
+    if (parts.length == 1) {
+      // Только поле, сортировка по умолчанию ASC
+      return Sort.by(parts[0]).ascending();
+    }
+
+    // Создаем список Order для множественной сортировки
+    List<Sort.Order> orders = new ArrayList<>();
+    for (int i = 0; i < parts.length; i += 2) {
+      String field = parts[i];
+      String direction = (i + 1 < parts.length) ? parts[i + 1] : "asc";
+
+      Sort.Order order = direction.equalsIgnoreCase("desc")
+          ? Sort.Order.desc(field)
+          : Sort.Order.asc(field);
+      orders.add(order);
+    }
+
+    return Sort.by(orders);
   }
 }
