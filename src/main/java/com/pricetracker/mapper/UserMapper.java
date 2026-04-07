@@ -4,7 +4,6 @@ import com.pricetracker.dto.UserDto;
 import com.pricetracker.entity.Product;
 import com.pricetracker.entity.User;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -26,7 +25,6 @@ public class UserMapper {
         user.getUsername(),
         user.getEmail(),
         user.getFullName(),
-        null,
         trackedProductIds
     );
   }
@@ -41,7 +39,6 @@ public class UserMapper {
     user.setUsername(dto.username());
     user.setEmail(dto.email());
     user.setFullName(dto.fullName());
-    user.setPasswordHash(dto.password());
 
     return user;
   }

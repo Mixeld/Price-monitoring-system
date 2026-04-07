@@ -2,6 +2,7 @@ package com.pricetracker.controller;
 
 import com.pricetracker.dto.CategoryDto;
 import com.pricetracker.service.CategoryService;
+import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +39,7 @@ public class CategoryController {
   }
 
   @PostMapping
-  public ResponseEntity<CategoryDto> createCategory(@RequestBody CategoryDto categoryDto) {
+  public ResponseEntity<CategoryDto> createCategory(@Valid @RequestBody CategoryDto categoryDto) {
     CategoryDto created = categoryService.createCategory(categoryDto);
     return ResponseEntity
         .created(URI.create("/api/categories/" + created.id()))
@@ -48,8 +49,7 @@ public class CategoryController {
   @PutMapping("/{id}")
   public ResponseEntity<CategoryDto> updateCategory(
       @PathVariable Long id,
-      @RequestBody CategoryDto categoryDto) {
-
+      @Valid @RequestBody CategoryDto categoryDto) {
     return ResponseEntity.ok(categoryService.updateCategory(id, categoryDto));
   }
 

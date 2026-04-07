@@ -12,7 +12,6 @@ import com.pricetracker.repository.UserRepository;
 import com.pricetracker.service.base.NamedEntityService;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -20,9 +19,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-
-
 
 @Slf4j
 @Service
@@ -87,7 +83,7 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
 
   @Override
   protected void validateBeforeDelete(User entity) {
-
+    // можно добавить логику
   }
 
   @Override
@@ -96,10 +92,6 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
     entity.setEmail(dto.email());
     entity.setFullName(dto.fullName());
     entity.setUpdatedAt(LocalDateTime.now());
-
-    if (dto.password() != null && !dto.password().isBlank()) {
-      entity.setPasswordHash(hashPassword(dto.password()));
-    }
 
     if (dto.trackedProductIds() != null) {
       List<Product> products = dto.trackedProductIds().stream()
@@ -114,9 +106,7 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
   protected void beforeSave(User entity) {
     entity.setCreatedAt(LocalDateTime.now());
     entity.setUpdatedAt(LocalDateTime.now());
-    if (entity.getPasswordHash() != null && !entity.getPasswordHash().startsWith("$2a$")) {
-      entity.setPasswordHash(hashPassword(entity.getPasswordHash()));
-    }
+    // Пароль уже должен быть установлен до вызова этого метода
   }
 
   private String hashPassword(String password) {
@@ -125,6 +115,30 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
 
   private boolean matchesPassword(String rawPassword, String encodedPassword) {
     return passwordEncoder.matches(rawPassword, encodedPassword);
+  }
+
+  // ✅ НОВЫЙ МЕТОД для создания с паролем
+  @Transactional
+  public UserDto create(UserDto dto, String rawPassword) {
+    log.debug("Creating new user with data: {}", dto);
+    validateBeforeCreate(dto);
+
+    User entity = mapper.toEntity(dto);
+    entity.setPasswordHash(hashPassword(rawPassword));  // устанавливаем пароль отдельно
+    beforeSave(entity);
+    User savedEntity = userRepository.save(entity);
+    afterSave(savedEntity);
+
+    log.info("User created successfully with id: {}", savedEntity.getId());
+    return mapper.toDto(savedEntity);
+  }
+
+  // ✅ ПЕРЕОПРЕДЕЛЯЕМ родительский метод create, чтобы он не использовался
+  @Override
+  @Transactional
+  public UserDto create(UserDto dto) {
+    throw new UnsupportedOperationException(
+        "Use create(UserDto, String password) instead. Password is required.");
   }
 
   public UserDto getByUsername(String username) {

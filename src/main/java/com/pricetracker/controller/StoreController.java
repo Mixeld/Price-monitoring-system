@@ -2,6 +2,7 @@ package com.pricetracker.controller;
 
 import com.pricetracker.dto.StoreDto;
 import com.pricetracker.service.StoreService;
+import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
@@ -46,7 +47,7 @@ public class StoreController {
   }
 
   @PostMapping
-  public ResponseEntity<StoreDto> createStore(@RequestBody StoreDto storeDto) {
+  public ResponseEntity<StoreDto> createStore(@Valid @RequestBody StoreDto storeDto) {
     StoreDto created = storeService.createStore(storeDto);
     return ResponseEntity
         .created(URI.create("/api/stores/" + created.id()))
@@ -56,7 +57,7 @@ public class StoreController {
   @PutMapping("/{id}")
   public ResponseEntity<StoreDto> updateStore(
       @PathVariable Long id,
-      @RequestBody StoreDto storeDto) {
+      @Valid @RequestBody StoreDto storeDto) {
     return ResponseEntity.ok(storeService.updateStore(id, storeDto));
   }
 

@@ -2,6 +2,7 @@ package com.pricetracker.controller;
 
 import com.pricetracker.dto.ProductDto;
 import com.pricetracker.service.ProductService;
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.ArrayList;
@@ -33,7 +34,7 @@ public class ProductController {
   }
 
   @PostMapping
-  public ResponseEntity<ProductDto> createProduct(@RequestBody ProductDto productDto) {
+  public ResponseEntity<ProductDto> createProduct(@Valid @RequestBody ProductDto productDto) {
     ProductDto created = productService.saveProduct(productDto);
     return ResponseEntity
         .created(URI.create("/api/products/" + created.id()))
@@ -43,7 +44,7 @@ public class ProductController {
   @PutMapping("/{id}")
   public ResponseEntity<ProductDto> updateProduct(
       @PathVariable Long id,
-      @RequestBody ProductDto productDto) {
+      @Valid @RequestBody ProductDto productDto) {
     return ResponseEntity.ok(productService.updateProduct(id, productDto));
   }
 
@@ -63,7 +64,6 @@ public class ProductController {
       @RequestParam(defaultValue = "id,asc") final String sort,
       @RequestParam(defaultValue = "false") final boolean useNative
   ) {
-    // Создаем Sort из параметра
     Sort sortOrder = parseSortParameter(sort);
     Pageable pageable = PageRequest.of(page, size, sortOrder);
 
@@ -77,11 +77,9 @@ public class ProductController {
 
     String[] parts = sort.split(",");
     if (parts.length == 1) {
-      // Только поле, сортировка по умолчанию ASC
       return Sort.by(parts[0]).ascending();
     }
 
-    // Создаем список Order для множественной сортировки
     List<Sort.Order> orders = new ArrayList<>();
     for (int i = 0; i < parts.length; i += 2) {
       String field = parts[i];

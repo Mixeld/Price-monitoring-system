@@ -4,6 +4,7 @@ import com.pricetracker.entity.Product;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,7 +19,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
   List<Product> findByCategoryName(String categoryName);
 
   Optional<Product> findByName(String name);
-
+  @EntityGraph(attributePaths = {"category", "priceHistories"})
   @Query("SELECT p FROM Product p " +
       "WHERE (:category IS NULL OR p.category.name = :category) " +
       "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
@@ -30,6 +31,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
       Pageable pageable
   );
 
+  @EntityGraph(attributePaths = {"category", "priceHistories"})
   @Query(value = "SELECT p.* FROM products p " +
       "LEFT JOIN categories c ON p.category_id = c.id " +
       "WHERE (:category IS NULL OR c.name = :category) " +
