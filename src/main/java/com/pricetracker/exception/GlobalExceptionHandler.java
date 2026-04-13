@@ -1,102 +1,76 @@
 package com.pricetracker.exception;
 
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.validation.ConstraintViolation;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-import jakarta.validation.ConstraintViolationException;
-import jakarta.validation.ConstraintViolation;
-import org.springframework.dao.DataAccessException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.web.servlet.resource.NoResourceFoundException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 
+@Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-  private static final String TIMESTAMP = "timestamp ";
+  private static final String TIMESTAMP = "timestamp";
   private static final String STATUS = "status";
   private static final String ERROR = "error";
   private static final String MESSAGE = "message";
 
+  // 404 - Resource Not Found
   @ExceptionHandler(ResourceNotFoundException.class)
   public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException e) {
-    Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.NOT_FOUND.value());
-    response.put(ERROR, "Not Found");
-    response.put(MESSAGE, e.getMessage());
-
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    log.warn("Resource not found: {}", e.getMessage());
+    return buildErrorResponse(HttpStatus.NOT_FOUND, "Not Found", e.getMessage());
   }
 
+  // 409 - Duplicate
   @ExceptionHandler(DuplicateResourceException.class)
   public ResponseEntity<Map<String, Object>> handleDuplicate(DuplicateResourceException e) {
-    Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.CONFLICT.value());
-    response.put(ERROR, "Conflict");
-    response.put(MESSAGE, e.getMessage());
-
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    log.warn("Duplicate resource: {}", e.getMessage());
+    return buildErrorResponse(HttpStatus.CONFLICT, "Conflict", e.getMessage());
   }
 
+  // 400 - Cannot Delete
   @ExceptionHandler(CannotDeleteException.class)
   public ResponseEntity<Map<String, Object>> handleCannotDelete(CannotDeleteException e) {
-    Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.BAD_REQUEST.value());
-    response.put(ERROR, "Bad Request");
-    response.put(MESSAGE, e.getMessage());
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    log.warn("Cannot delete: {}", e.getMessage());
+    return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request", e.getMessage());
   }
 
+  // 422 - Business Exception
   @ExceptionHandler(BusinessException.class)
   public ResponseEntity<Map<String, Object>> handleBusiness(BusinessException e) {
-    Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.UNPROCESSABLE_ENTITY.value());
-    response.put(ERROR, "Business Error");
-    response.put(MESSAGE, e.getMessage());
-    response.put("errorCode", e.getErrorCode());
-
-    return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
+    log.warn("Business error [{}]: {}", e.getErrorCode(), e.getMessage());
+    ResponseEntity<Map<String, Object>> response = buildErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, "Business Error", e.getMessage());
+    response.getBody().put("errorCode", e.getErrorCode());
+    return response;
   }
 
+  // 400 - Validation Errors (@Valid)
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<Map<String,Object>> handleValidationExceptions(
-      MethodArgumentNotValidException ex) {
+  public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    log.warn("Validation failed: {}", ex.getMessage());
 
     Map<String, String> fieldErrors = new HashMap<>();
-    ex.getBindingResult().getAllErrors().forEach((error) -> {
-      String fieldName = ((FieldError) error).getField();
-      String errorMessage = error.getDefaultMessage();
-      fieldErrors.put(fieldName, errorMessage);
-    });
+    ex.getBindingResult().getFieldErrors().forEach(error ->
+        fieldErrors.put(error.getField(), error.getDefaultMessage())
+    );
 
-    Map<String,Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.BAD_REQUEST.value());
-    response.put(ERROR,"Validation Failed");
-    response.put(MESSAGE, "Invalid input parameters");
-    response.put(ERROR, fieldErrors);
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    ResponseEntity<Map<String, Object>> response = buildErrorResponse(HttpStatus.BAD_REQUEST, "Validation Failed", "Invalid input parameters");
+    response.getBody().put("violations", fieldErrors);
+    return response;
   }
 
+  // 400 - Constraint Violation
   @ExceptionHandler(ConstraintViolationException.class)
-  public ResponseEntity<Map<String, Object>> handleConstraintViolation(
-      ConstraintViolationException ex) {
+  public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
+    log.warn("Constraint violation: {}", ex.getMessage());
 
     Map<String, String> violations = ex.getConstraintViolations().stream()
         .collect(Collectors.toMap(
@@ -105,129 +79,54 @@ public class GlobalExceptionHandler {
             (v1, v2) -> v1 + ", " + v2
         ));
 
-    Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.BAD_REQUEST.value());
-    response.put(ERROR, "Validation Failed");
-    response.put(MESSAGE, "Constraint violation");
-    response.put("violations", violations);
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    ResponseEntity<Map<String, Object>> response = buildErrorResponse(HttpStatus.BAD_REQUEST, "Validation Failed", "Constraint violation");
+    response.getBody().put("violations", violations);
+    return response;
   }
 
-  @ExceptionHandler(EntityNotFoundException.class)
-  public ResponseEntity<Map<String, Object>> handleEntityNotFound(EntityNotFoundException e) {
-    Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.NOT_FOUND.value());
-    response.put(ERROR, "Not Found");
-    response.put(MESSAGE, e.getMessage());
-
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-  }
-
+  // 400 - Illegal Argument
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException e) {
-    Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.BAD_REQUEST.value());
-    response.put(ERROR, "Bad Request");
-    response.put(MESSAGE, e.getMessage());
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    log.warn("Illegal argument: {}", e.getMessage());
+    return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request", e.getMessage());
   }
 
+  // 409 - Illegal State
   @ExceptionHandler(IllegalStateException.class)
   public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException e) {
-    Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.CONFLICT.value());
-    response.put(ERROR, "Conflict");
-    response.put(MESSAGE, e.getMessage());
-
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    log.warn("Illegal state: {}", e.getMessage());
+    return buildErrorResponse(HttpStatus.CONFLICT, "Conflict", e.getMessage());
   }
 
-  @ExceptionHandler(DataIntegrityViolationException.class)
-  public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(
-      DataIntegrityViolationException e) {
+  // 409 - Data Integrity Violation
+  @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+  public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException e) {
+    log.warn("Data integrity violation: {}", e.getMessage());
 
-    Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.CONFLICT.value());
-    response.put(ERROR, "Data Integrity Violation");
-
-    String message = e.getMostSpecificCause().getMessage();
-    if (message.contains("Duplicate entry") || message.contains("UNIQUE constraint")) {
-      response.put(MESSAGE, "Duplicate record violates unique constraint");
-    } else if (message.contains("foreign key constraint")) {
-      response.put(MESSAGE, "Operation violates foreign key constraint");
-    } else {
-      response.put(MESSAGE, "Database integrity constraint violated: " + message);
+    String message = "Database constraint violation";
+    if (e.getCause() != null && e.getCause().getMessage() != null) {
+      String causeMsg = e.getCause().getMessage();
+      if (causeMsg.contains("Unique") || causeMsg.contains("unique")) {
+        message = "Duplicate entry violates unique constraint";
+      }
     }
-
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    return buildErrorResponse(HttpStatus.CONFLICT, "Data Integrity Violation", message);
   }
 
-  @ExceptionHandler(DataAccessException.class)
-  public ResponseEntity<Map<String, Object>> handleDataAccess(DataAccessException e) {
-    Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.INTERNAL_SERVER_ERROR.value());
-    response.put(ERROR, "Database Error");
-    response.put(MESSAGE, "An error occurred while accessing the database");
-
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-  }
-
-  @ExceptionHandler(HttpMessageNotReadableException.class)
-  public ResponseEntity<Map<String, Object>> handleMessageNotReadable(
-      HttpMessageNotReadableException e) {
-
-    Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.BAD_REQUEST.value());
-    response.put(ERROR, "Malformed JSON Request");
-    response.put(MESSAGE, "The request body is malformed or contains invalid data");
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-  }
-
-  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-  public ResponseEntity<Map<String, Object>> handleTypeMismatch(
-      MethodArgumentTypeMismatchException e) {
-
-    Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.BAD_REQUEST.value());
-    response.put(ERROR, "Type Mismatch");
-
-    String paramName = e.getName();
-    String requiredType = e.getRequiredType() != null ? e.getRequiredType().getSimpleName() : "unknown";
-    response.put(MESSAGE, String.format("Parameter '%s' must be of type '%s'", paramName, requiredType));
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-  }
-
-  @ExceptionHandler(NoResourceFoundException.class)
-  public ResponseEntity<Map<String, Object>> handleNoResourceFound(NoResourceFoundException e) {
-    Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.NOT_FOUND.value());
-    response.put(ERROR, "Not Found");
-    response.put(MESSAGE, "The requested resource was not found");
-
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-  }
-
+  // 500 - Все остальные ошибки
   @ExceptionHandler(Exception.class)
   public ResponseEntity<Map<String, Object>> handleGenericException(Exception e) {
+    log.error("Unexpected error: {}", e.getMessage(), e);
+    return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", "An unexpected error occurred");
+  }
+
+  // ===== ВСПОМОГАТЕЛЬНЫЙ МЕТОД (возвращает ResponseEntity) =====
+  private ResponseEntity<Map<String, Object>> buildErrorResponse(HttpStatus status, String error, String message) {
     Map<String, Object> response = new HashMap<>();
     response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, HttpStatus.INTERNAL_SERVER_ERROR.value());
-    response.put(ERROR, "Internal Server Error");
-    response.put(MESSAGE, "An unexpected error occurred. Please try again later.");
-
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    response.put(STATUS, status.value());
+    response.put(ERROR, error);
+    response.put(MESSAGE, message);
+    return ResponseEntity.status(status).body(response);
   }
 }
