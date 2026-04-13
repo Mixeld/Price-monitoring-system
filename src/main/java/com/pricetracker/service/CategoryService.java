@@ -3,6 +3,7 @@ package com.pricetracker.service;
 import com.pricetracker.dto.CategoryDto;
 import com.pricetracker.entity.Category;
 import com.pricetracker.entity.Product;
+import com.pricetracker.exception.DuplicateResourceException;
 import com.pricetracker.mapper.CategoryMapper;
 import com.pricetracker.repository.CategoryRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -57,7 +58,7 @@ public class CategoryService {
     log.debug("Creating new category with name: {}", dto.name());
 
     if (categoryRepository.findByName(dto.name()).isPresent()) {
-      throw new IllegalArgumentException(
+      throw new DuplicateResourceException(
           String.format(CATEGORY_ALREADY_EXISTS, dto.name()));
     }
 

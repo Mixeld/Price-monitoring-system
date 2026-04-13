@@ -83,7 +83,7 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
 
   @Override
   protected void validateBeforeDelete(User entity) {
-    // можно добавить логику
+
   }
 
   @Override
@@ -106,7 +106,6 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
   protected void beforeSave(User entity) {
     entity.setCreatedAt(LocalDateTime.now());
     entity.setUpdatedAt(LocalDateTime.now());
-    // Пароль уже должен быть установлен до вызова этого метода
   }
 
   private String hashPassword(String password) {
@@ -117,7 +116,6 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
     return passwordEncoder.matches(rawPassword, encodedPassword);
   }
 
-  // ✅ НОВЫЙ МЕТОД для создания с паролем
   @Transactional
   public UserDto create(UserDto dto, String rawPassword) {
     log.debug("Creating new user with data: {}", dto);
@@ -133,7 +131,6 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
     return mapper.toDto(savedEntity);
   }
 
-  // ✅ ПЕРЕОПРЕДЕЛЯЕМ родительский метод create, чтобы он не использовался
   @Override
   @Transactional
   public UserDto create(UserDto dto) {
@@ -152,7 +149,7 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
     log.debug("Authenticating user with email: {}", email);
 
     User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+        .orElseThrow(() -> new BusinessException("Invalid credentials", "AUTH_001"));
 
     if (!matchesPassword(password, user.getPasswordHash())) {
       throw new BusinessException("Invalid credentials", "AUTH_001");

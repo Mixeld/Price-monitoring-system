@@ -3,6 +3,7 @@ package com.pricetracker.service;
 import com.pricetracker.dto.StoreDto;
 import com.pricetracker.entity.PriceHistory;
 import com.pricetracker.entity.Store;
+import com.pricetracker.exception.DuplicateResourceException;
 import com.pricetracker.mapper.StoreMapper;
 import com.pricetracker.repository.PriceHistoryRepository;
 import com.pricetracker.repository.StoreRepository;
@@ -61,15 +62,12 @@ public class StoreService {
     log.debug("Creating new store with name: {}", dto.name());
 
     if (storeRepository.findByName(dto.name()).isPresent()) {
-      throw new IllegalArgumentException(
-          String.format(STORE_ALREADY_EXISTS, dto.name()));
+      throw new DuplicateResourceException("Store", "name", dto.name());
     }
 
     if (dto.websiteUrl() != null && !dto.websiteUrl().isBlank()
-        &&
-        storeRepository.findByWebsiteUrl(dto.websiteUrl()).isPresent()) {
-      throw new IllegalArgumentException(
-          String.format(STORE_WITH_URL_ALREADY_EXISTS, dto.websiteUrl()));
+        && storeRepository.findByWebsiteUrl(dto.websiteUrl()).isPresent()) {
+      throw new DuplicateResourceException("Store", "websiteUrl", dto.websiteUrl());
     }
 
     Store store = storeMapper.toEntity(dto);

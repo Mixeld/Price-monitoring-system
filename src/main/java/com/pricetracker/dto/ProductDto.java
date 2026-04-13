@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
+@Schema(description = "Product Data Transfer Object")
 public record ProductDto(
     @Schema(description = "Product ID", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
     Long id,
