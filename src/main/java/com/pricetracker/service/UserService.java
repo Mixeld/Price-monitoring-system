@@ -61,21 +61,27 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
 
   @Override
   protected void validateBeforeCreate(UserDto dto) {
-    super.validateBeforeCreate(dto);
-
     if (dto.username() != null && userRepository.findByUsername(dto.username()).isPresent()) {
       throw new DuplicateResourceException("User", "username", dto.username());
+    }
+
+    if (dto.email() != null && userRepository.findByEmail(dto.email()).isPresent()) {
+      throw new DuplicateResourceException("User", "email", dto.email());
     }
   }
 
   @Override
   protected void validateBeforeUpdate(Long id, UserDto dto, User entity) {
-    super.validateBeforeUpdate(id, dto, entity);
+    // Проверка email
+    if (dto.email() != null &&
+        !dto.email().equals(entity.getEmail()) &&
+        userRepository.findByEmail(dto.email()).isPresent()) {
+      throw new DuplicateResourceException("User", "email", dto.email());
+    }
 
-    if (dto.username() != null
-        &&
-        !dto.username().equals(entity.getUsername())
-        &&
+    // Проверка username
+    if (dto.username() != null &&
+        !dto.username().equals(entity.getUsername()) &&
         userRepository.findByUsername(dto.username()).isPresent()) {
       throw new DuplicateResourceException("User", "username", dto.username());
     }
@@ -83,14 +89,20 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
 
   @Override
   protected void validateBeforeDelete(User entity) {
-
+    // можно добавить логику
   }
 
   @Override
   protected void updateEntity(User entity, UserDto dto) {
-    entity.setUsername(dto.username());
-    entity.setEmail(dto.email());
-    entity.setFullName(dto.fullName());
+    if (dto.username() != null) {
+      entity.setUsername(dto.username());
+    }
+    if (dto.email() != null) {
+      entity.setEmail(dto.email());
+    }
+    if (dto.fullName() != null) {
+      entity.setFullName(dto.fullName());
+    }
     entity.setUpdatedAt(LocalDateTime.now());
 
     if (dto.trackedProductIds() != null) {
@@ -122,7 +134,7 @@ public class UserService extends NamedEntityService<User, UserDto, Long> {
     validateBeforeCreate(dto);
 
     User entity = mapper.toEntity(dto);
-    entity.setPasswordHash(hashPassword(rawPassword));  // устанавливаем пароль отдельно
+    entity.setPasswordHash(hashPassword(rawPassword));
     beforeSave(entity);
     User savedEntity = userRepository.save(entity);
     afterSave(savedEntity);

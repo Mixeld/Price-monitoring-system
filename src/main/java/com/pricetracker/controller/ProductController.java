@@ -1,5 +1,6 @@
 package com.pricetracker.controller;
 
+import com.pricetracker.dto.BulkProductCreateDto;
 import com.pricetracker.dto.ProductDto;
 import com.pricetracker.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +24,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @Tag(name = "Products", description = "Product management endpoints")
 @RestController
 @RequestMapping("/api/products")
@@ -73,6 +76,34 @@ public class ProductController {
         .body(created);
   }
 
+  @Operation(summary = "Bulk create products", description = "Creates multiple products in one request with transaction support")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Products created successfully",
+          content = @Content(schema = @Schema(implementation = ProductDto.class))),
+      @ApiResponse(responseCode = "400", description = "Invalid input data"),
+      @ApiResponse(responseCode = "500", description = "Transaction failed - all products rolled back")
+  })
+  @PostMapping("/bulk")
+  public ResponseEntity<List<ProductDto>> createProductsBulk(
+      @Parameter(description = "List of products to create", required = true)
+      @Valid @RequestBody BulkProductCreateDto bulkDto,
+      @Parameter(description = "Use transaction (default: true). Set to false to see partial commits", example = "true")
+      @RequestParam(defaultValue = "true") boolean useTransaction
+  ) {
+    List<ProductDto> created;
+
+    if (useTransaction) {
+      log.info("Creating {} products WITH transaction", bulkDto.products().size());
+      created = productService.createProductsBulk(bulkDto);
+    } else {
+      log.warn("Creating {} products WITHOUT transaction - this may cause partial commits!",
+          bulkDto.products().size());
+      created = productService.createProductsBulkWithoutTransaction(bulkDto);
+    }
+
+    return ResponseEntity.ok(created);
+  }
+
   @Operation(summary = "Update an existing product", description = "Updates a product with the provided data")
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Product updated successfully",
@@ -103,7 +134,8 @@ public class ProductController {
     return ResponseEntity.noContent().build();
   }
 
-  @Operation(summary = "Search products", description = "Search products with filters, pagination and sorting")
+  @Operation(summary = "Search products", description = "Search products with filters, pagination and sorting. " +
+      "Demonstrates caching and N+1 problem solutions.")
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Search completed successfully"),
       @ApiResponse(responseCode = "400", description = "Invalid search parameters")
@@ -112,17 +144,25 @@ public class ProductController {
   public Page<ProductDto> searchProducts(
       @Parameter(description = "Category name filter", example = "Electronics")
       @RequestParam(required = false) final String category,
+
       @Parameter(description = "Minimum price filter", example = "100.00")
       @RequestParam(required = false) final BigDecimal minPrice,
+
       @Parameter(description = "Maximum price filter", example = "1000.00")
       @RequestParam(required = false) final BigDecimal maxPrice,
+
       @Parameter(description = "Page number (0-based)", example = "0")
       @RequestParam(defaultValue = "0") final int page,
+
       @Parameter(description = "Page size", example = "10")
       @RequestParam(defaultValue = "10") final int size,
-      @Parameter(description = "Sort parameter (field,asc|desc)", example = "price,desc")
+
+      @Parameter(description = "Sort parameter format: field,asc|desc (can be multiple: field1,asc,field2,desc)",
+          example = "price,desc")
       @RequestParam(defaultValue = "id,asc") final String sort,
-      @Parameter(description = "Use native SQL query", example = "false")
+
+      @Parameter(description = "Use native SQL query instead of JPQL (for performance comparison)",
+          example = "false")
       @RequestParam(defaultValue = "false") final boolean useNative
   ) {
     Sort sortOrder = parseSortParameter(sort);
@@ -131,6 +171,27 @@ public class ProductController {
     return productService.searchProducts(category, minPrice, maxPrice, pageable, useNative);
   }
 
+  @Operation(summary = "Get cache statistics", description = "Returns current search cache size and keys")
+  @ApiResponse(responseCode = "200", description = "Cache stats retrieved successfully")
+  @GetMapping("/cache/stats")
+  public ResponseEntity<java.util.Map<String, Object>> getCacheStats() {
+    return ResponseEntity.ok(productService.getCacheStats());
+  }
+
+  @Operation(summary = "Clear search cache", description = "Invalidates all cached search results")
+  @ApiResponse(responseCode = "200", description = "Cache cleared successfully")
+  @DeleteMapping("/cache")
+  public ResponseEntity<String> clearCache() {
+    productService.clearCache();
+    return ResponseEntity.ok("Cache cleared successfully");
+  }
+
+  /**
+   * Parses sort parameter from string format: "field,asc" or "field1,asc,field2,desc"
+   *
+   * @param sort sort string parameter
+   * @return Sort object for pagination
+   */
   private Sort parseSortParameter(String sort) {
     if (sort == null || sort.isBlank()) {
       return Sort.by("id").ascending();

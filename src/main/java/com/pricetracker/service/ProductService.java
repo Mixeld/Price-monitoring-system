@@ -1,5 +1,6 @@
 package com.pricetracker.service;
 
+import com.pricetracker.exception.ResourceNotFoundException;
 import com.pricetracker.service.cache.SearchCache;
 import com.pricetracker.dto.ProductDto;
 import com.pricetracker.entity.Product;
@@ -14,6 +15,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.pricetracker.dto.BulkProductCreateDto;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -32,7 +36,8 @@ public class ProductService {
   @Transactional(readOnly = true)
   public ProductDto getProductById(Long id) {
     Product product = productRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        // ИСПОЛЬЗУЙ ТВОЕ КАСТОМНОЕ ИСКЛЮЧЕНИЕ
+        .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id)); // <-- ИСПРАВЛЕНИЕ
     return productMapper.toDto(product);
   }
 
@@ -148,4 +153,64 @@ public class ProductService {
     searchCache.invalidateAll();
     log.info("Cache manually cleared");
   }
+
+  @Transactional
+  public List<ProductDto> createProductsBulk(BulkProductCreateDto bulkDto) {
+    log.info("Starting bulk product creation for {} products", bulkDto.products().size());
+
+    List<ProductDto> createdProducts = bulkDto.products().stream()
+        .map(this::processProductWithCategory)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .collect(Collectors.toList());
+
+    log.info("Bulk creation completed. Created: {} products", createdProducts.size());
+
+    searchCache.invalidateAll();
+
+    return createdProducts;
+  }
+
+  private Optional<ProductDto> processProductWithCategory(ProductDto dto) {
+    Optional<String> categoryName = Optional.ofNullable(dto.category());
+
+    categoryName.ifPresentOrElse(
+        name -> log.debug("Processing product '{}' with category '{}'", dto.name(), name),
+        () -> log.debug("Processing product '{}' without category", dto.name())
+    );
+
+    Product product = productMapper.toEntity(dto);
+
+    Optional.ofNullable(dto.category())
+        .filter(name -> !name.isBlank())
+        .flatMap(categoryRepository::findByName)
+        .ifPresent(product::setCategory);
+
+    Product saved = productRepository.save(product);
+    log.debug("Product '{}' saved with id: {}", saved.getName(), saved.getId());
+
+    return Optional.of(productMapper.toDto(saved));
+  }
+
+  public List<ProductDto> createProductsBulkWithoutTransaction(BulkProductCreateDto bulkDto) {
+    log.warn("!!! EXECUTING BULK OPERATION WITHOUT TRANSACTION !!!");
+
+    List<ProductDto> createdProducts = new ArrayList<>();
+
+    for (ProductDto dto : bulkDto.products()) {
+      // Если здесь произойдёт ошибка, предыдущие продукты НЕ откатятся!
+      Product product = productMapper.toEntity(dto);
+
+      Optional.ofNullable(dto.category())
+          .filter(name -> !name.isBlank())
+          .flatMap(categoryRepository::findByName)
+          .ifPresent(product::setCategory);
+
+      Product saved = productRepository.save(product);
+      createdProducts.add(productMapper.toDto(saved));
+    }
+
+    return createdProducts;
+  }
+
 }
