@@ -1,5 +1,7 @@
 package com.pricetracker.exception;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -10,8 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
 
 @Slf4j
 @ControllerAdvice
@@ -22,39 +22,36 @@ public class GlobalExceptionHandler {
   private static final String ERROR = "error";
   private static final String MESSAGE = "message";
 
-  // 404 - Resource Not Found
   @ExceptionHandler(ResourceNotFoundException.class)
   public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException e) {
     log.warn("Resource not found: {}", e.getMessage());
     return buildErrorResponse(HttpStatus.NOT_FOUND, "Not Found", e.getMessage());
   }
 
-  // 409 - Duplicate
   @ExceptionHandler(DuplicateResourceException.class)
   public ResponseEntity<Map<String, Object>> handleDuplicate(DuplicateResourceException e) {
     log.warn("Duplicate resource: {}", e.getMessage());
     return buildErrorResponse(HttpStatus.CONFLICT, "Conflict", e.getMessage());
   }
 
-  // 400 - Cannot Delete
   @ExceptionHandler(CannotDeleteException.class)
   public ResponseEntity<Map<String, Object>> handleCannotDelete(CannotDeleteException e) {
     log.warn("Cannot delete: {}", e.getMessage());
     return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request", e.getMessage());
   }
 
-  // 422 - Business Exception
   @ExceptionHandler(BusinessException.class)
   public ResponseEntity<Map<String, Object>> handleBusiness(BusinessException e) {
     log.warn("Business error [{}]: {}", e.getErrorCode(), e.getMessage());
-    ResponseEntity<Map<String, Object>> response = buildErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, "Business Error", e.getMessage());
+    ResponseEntity<Map<String, Object>> response =
+        buildErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, "Business Error", e.getMessage());
     response.getBody().put("errorCode", e.getErrorCode());
     return response;
   }
 
-  // 400 - Validation Errors (@Valid)
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+  public ResponseEntity<Map<String, Object>>
+  handleValidationExceptions(MethodArgumentNotValidException ex) {
     log.warn("Validation failed: {}", ex.getMessage());
 
     Map<String, String> fieldErrors = new HashMap<>();
@@ -62,14 +59,15 @@ public class GlobalExceptionHandler {
         fieldErrors.put(error.getField(), error.getDefaultMessage())
     );
 
-    ResponseEntity<Map<String, Object>> response = buildErrorResponse(HttpStatus.BAD_REQUEST, "Validation Failed", "Invalid input parameters");
+    ResponseEntity<Map<String, Object>> response =
+        buildErrorResponse(HttpStatus.BAD_REQUEST, "Validation Failed", "Invalid input parameters");
     response.getBody().put("violations", fieldErrors);
     return response;
   }
 
-  // 400 - Constraint Violation
   @ExceptionHandler(ConstraintViolationException.class)
-  public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
+  public ResponseEntity<Map<String, Object>> handleConstraintViolation(
+      ConstraintViolationException ex) {
     log.warn("Constraint violation: {}", ex.getMessage());
 
     Map<String, String> violations = ex.getConstraintViolations().stream()
@@ -79,28 +77,27 @@ public class GlobalExceptionHandler {
             (v1, v2) -> v1 + ", " + v2
         ));
 
-    ResponseEntity<Map<String, Object>> response = buildErrorResponse(HttpStatus.BAD_REQUEST, "Validation Failed", "Constraint violation");
+    ResponseEntity<Map<String, Object>> response =
+        buildErrorResponse(HttpStatus.BAD_REQUEST, "Validation Failed", "Constraint violation");
     response.getBody().put("violations", violations);
     return response;
   }
 
-  // 400 - Illegal Argument
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException e) {
     log.warn("Illegal argument: {}", e.getMessage());
     return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request", e.getMessage());
   }
 
-  // 409 - Illegal State
   @ExceptionHandler(IllegalStateException.class)
   public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException e) {
     log.warn("Illegal state: {}", e.getMessage());
     return buildErrorResponse(HttpStatus.CONFLICT, "Conflict", e.getMessage());
   }
 
-  // 409 - Data Integrity Violation
   @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
-  public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException e) {
+  public ResponseEntity<Map<String, Object>>
+  handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException e) {
     log.warn("Data integrity violation: {}", e.getMessage());
 
     String message = "Database constraint violation";
@@ -113,15 +110,15 @@ public class GlobalExceptionHandler {
     return buildErrorResponse(HttpStatus.CONFLICT, "Data Integrity Violation", message);
   }
 
-  // 500 - Все остальные ошибки
   @ExceptionHandler(Exception.class)
   public ResponseEntity<Map<String, Object>> handleGenericException(Exception e) {
     log.error("Unexpected error: {}", e.getMessage(), e);
-    return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", "An unexpected error occurred");
+    return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+        "Internal Server Error", "An unexpected error occurred");
   }
 
-  // ===== ВСПОМОГАТЕЛЬНЫЙ МЕТОД (возвращает ResponseEntity) =====
-  private ResponseEntity<Map<String, Object>> buildErrorResponse(HttpStatus status, String error, String message) {
+  private ResponseEntity<Map<String, Object>>
+  buildErrorResponse(HttpStatus status, String error, String message) {
     Map<String, Object> response = new HashMap<>();
     response.put(TIMESTAMP, LocalDateTime.now());
     response.put(STATUS, status.value());

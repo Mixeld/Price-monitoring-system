@@ -1,27 +1,25 @@
 package com.pricetracker.service;
 
-import com.pricetracker.exception.ResourceNotFoundException;
-import com.pricetracker.service.cache.SearchCache;
+import com.pricetracker.dto.BulkProductCreateDto;
 import com.pricetracker.dto.ProductDto;
 import com.pricetracker.entity.Product;
-import com.pricetracker.entity.Category;
+import com.pricetracker.exception.ResourceNotFoundException;
 import com.pricetracker.mapper.ProductMapper;
-import com.pricetracker.repository.ProductRepository;
 import com.pricetracker.repository.CategoryRepository;
+import com.pricetracker.repository.ProductRepository;
+import com.pricetracker.service.cache.SearchCache;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.pricetracker.dto.BulkProductCreateDto;
-import java.util.ArrayList;
-import java.util.stream.Collectors;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -36,8 +34,7 @@ public class ProductService {
   @Transactional(readOnly = true)
   public ProductDto getProductById(Long id) {
     Product product = productRepository.findById(id)
-        // ИСПОЛЬЗУЙ ТВОЕ КАСТОМНОЕ ИСКЛЮЧЕНИЕ
-        .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id)); // <-- ИСПРАВЛЕНИЕ
+        .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id));
     return productMapper.toDto(product);
   }
 
@@ -117,7 +114,8 @@ public class ProductService {
     Page<Product> productPage;
 
     if (useNative) {
-      log.info("Executing NATIVE query with filters: category={}, minPrice={}, maxPrice={}, sort={}",
+      log.info(
+          "Executing NATIVE query with filters: category={}, minPrice={}, maxPrice={}, sort={}",
           category, minPrice, maxPrice, pageable.getSort());
       productPage = productRepository.searchProductsNative(
           category, minPrice, maxPrice, pageable
@@ -198,7 +196,6 @@ public class ProductService {
     List<ProductDto> createdProducts = new ArrayList<>();
 
     for (ProductDto dto : bulkDto.products()) {
-      // Если здесь произойдёт ошибка, предыдущие продукты НЕ откатятся!
       Product product = productMapper.toEntity(dto);
 
       Optional.ofNullable(dto.category())
