@@ -17,7 +17,6 @@ public abstract class BaseService<E, D, I> {
   protected final String entityName;
   protected final Function<E, D> toDto;
   protected final Function<D, E> toEntity;
-  protected final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(getClass());
 
   protected BaseService(JpaRepository<E, I> repository,
       String entityName,
@@ -70,8 +69,10 @@ public abstract class BaseService<E, D, I> {
     updateEntity(entity, dto);
     beforeUpdate(entity);
 
+    E savedEntity = repository.save(entity);
+
     log.info("{} updated successfully with id: {}", entityName, id);
-    return toDto.apply(entity);
+    return toDto.apply(savedEntity);
   }
 
   @Transactional
@@ -104,14 +105,14 @@ public abstract class BaseService<E, D, I> {
     }
   }
 
-
+  // Hook methods
   protected void validateBeforeCreate(D dto) {}
 
   protected void validateBeforeUpdate(I id, D dto, E entity) {}
 
   protected void validateBeforeDelete(E entity) {}
 
-  protected void updateEntity(E entity, D dto) {}
+  protected abstract void updateEntity(E entity, D dto);
 
   protected void beforeSave(E entity) {}
 

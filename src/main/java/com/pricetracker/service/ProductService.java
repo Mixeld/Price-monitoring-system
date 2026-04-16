@@ -2,24 +2,27 @@ package com.pricetracker.service;
 
 import com.pricetracker.dto.BulkProductCreateDto;
 import com.pricetracker.dto.ProductDto;
+import com.pricetracker.entity.Category;
 import com.pricetracker.entity.Product;
+import com.pricetracker.exception.DuplicateResourceException;
 import com.pricetracker.exception.ResourceNotFoundException;
 import com.pricetracker.mapper.ProductMapper;
 import com.pricetracker.repository.CategoryRepository;
 import com.pricetracker.repository.ProductRepository;
 import com.pricetracker.service.cache.SearchCache;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -65,7 +68,7 @@ public class ProductService {
   @Transactional
   public ProductDto updateProduct(Long id, ProductDto productDto) {
     Product existing = productRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id));
 
     productMapper.updateEntity(existing, productDto);
     Product updated = productRepository.save(existing);
@@ -78,6 +81,10 @@ public class ProductService {
 
   @Transactional
   public void deleteProduct(Long id) {
+    // Проверка на существование перед удалением, чтобы избежать EmptyResultDataAccessException
+    if (!productRepository.existsById(id)) {
+      throw new ResourceNotFoundException("Product", "id", id);
+    }
     productRepository.deleteById(id);
 
     searchCache.invalidateAll();
@@ -114,8 +121,7 @@ public class ProductService {
     Page<Product> productPage;
 
     if (useNative) {
-      log.info(
-          "Executing NATIVE query with filters: category={}, minPrice={}, maxPrice={}, sort={}",
+      log.info("Executing NATIVE query with filters: category={}, minPrice={}, maxPrice={}, sort={}",
           category, minPrice, maxPrice, pageable.getSort());
       productPage = productRepository.searchProductsNative(
           category, minPrice, maxPrice, pageable
@@ -170,6 +176,12 @@ public class ProductService {
   }
 
   private Optional<ProductDto> processProductWithCategory(ProductDto dto) {
+    // Добавляем явную проверку на дубликат имени ПЕРЕД сохранением.
+    // Это гарантирует, что исключение будет брошено и его поймает тест.
+    if (dto.name() != null && productRepository.existsByName(dto.name())) {
+      throw new DuplicateResourceException("Product", "name", dto.name());
+    }
+
     Optional<String> categoryName = Optional.ofNullable(dto.category());
 
     categoryName.ifPresentOrElse(
@@ -196,6 +208,12 @@ public class ProductService {
     List<ProductDto> createdProducts = new ArrayList<>();
 
     for (ProductDto dto : bulkDto.products()) {
+      // Если здесь произойдёт ошибка, предыдущие продукты НЕ откатятся!
+      // Добавляем ту же проверку, чтобы исключение было консистентным
+      if (dto.name() != null && productRepository.existsByName(dto.name())) {
+        throw new DuplicateResourceException("Product", "name", dto.name());
+      }
+
       Product product = productMapper.toEntity(dto);
 
       Optional.ofNullable(dto.category())
@@ -209,5 +227,4 @@ public class ProductService {
 
     return createdProducts;
   }
-
 }

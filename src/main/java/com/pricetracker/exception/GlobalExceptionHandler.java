@@ -5,6 +5,7 @@ import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -70,11 +71,16 @@ public class GlobalExceptionHandler {
       ConstraintViolationException ex) {
     log.warn("Constraint violation: {}", ex.getMessage());
 
+    // ИСПРАВЛЕНИЕ: Добавлена фильтрация для большей надежности.
+    // Это гарантирует, что мы не столкнемся с NPE, если у нарушения нет пути к свойству.
     Map<String, String> violations = ex.getConstraintViolations().stream()
-        .collect(Collectors.toMap(
+        .filter(violation -> Objects.nonNull(violation.getPropertyPath()))
+        .collect(Collectors.groupingBy(
             violation -> violation.getPropertyPath().toString(),
-            ConstraintViolation::getMessage,
-            (v1, v2) -> v1 + ", " + v2
+            Collectors.mapping(
+                ConstraintViolation::getMessage,
+                Collectors.joining(", ")
+            )
         ));
 
     ResponseEntity<Map<String, Object>> response =
@@ -120,10 +126,10 @@ public class GlobalExceptionHandler {
   private ResponseEntity<Map<String, Object>>
   buildErrorResponse(HttpStatus status, String error, String message) {
     Map<String, Object> response = new HashMap<>();
-    response.put(TIMESTAMP, LocalDateTime.now());
-    response.put(STATUS, status.value());
-    response.put(ERROR, error);
-    response.put(MESSAGE, message);
+    response.put("timestamp", LocalDateTime.now());
+    response.put("status", status.value());
+    response.put("error", error);
+    response.put("message", message);
     return ResponseEntity.status(status).body(response);
   }
 }

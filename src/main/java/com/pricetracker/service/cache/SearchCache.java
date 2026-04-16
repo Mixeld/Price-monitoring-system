@@ -69,11 +69,5 @@ public class SearchCache {
     private final int size;
     private final String sort;
     private final boolean useNative;
-
-    @Override
-    public String toString() {
-      return String.format("SearchKey{cat=%s, price=[%s-%s], page=%d/%d, sort=%s, native=%s}",
-          category, minPrice, maxPrice, page, size, sort, useNative);
-    }
   }
 }
