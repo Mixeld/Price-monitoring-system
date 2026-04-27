@@ -4,6 +4,7 @@ import com.pricetracker.dto.PriceHistoryDto;
 import com.pricetracker.entity.Product;
 import com.pricetracker.exception.ResourceNotFoundException;
 import com.pricetracker.repository.ProductRepository;
+import java.util.HashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -86,7 +87,7 @@ public class AsyncTaskService {
       var products = productRepository.findByCategoryName(categoryName);
 
       if (products.isEmpty()) {
-        throw new ResourceNotFoundException("Category", "name", categoryName);
+        throw new ResourceNotFoundException("No products found in category: " + categoryName);
       }
 
       int total = products.size();
@@ -95,13 +96,14 @@ public class AsyncTaskService {
       for (int i = 0; i < products.size(); i++) {
         Product product = products.get(i);
 
+        // ✅ ИСПРАВЛЕННЫЙ ВЫЗОВ - порядок параметров правильный!
         PriceHistoryDto historyDto = new PriceHistoryDto(
-            null,
-            product.getPrice(),
-            LocalDateTime.now(),
-            null,
-            product.getId(),
-            null
+            null,                 // id
+            product.getPrice(),   // price
+            LocalDateTime.now(),  // dateRecorded
+            product.getId(),      // productId (4-й параметр)
+            null,                 // storeId
+            null                  // storeName
         );
         priceHistoryService.recordPrice(historyDto);
 
@@ -123,13 +125,6 @@ public class AsyncTaskService {
 
       log.info("Задача {} успешно завершена. {}", taskId, result);
       return CompletableFuture.completedFuture(result);
-
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      taskStatusMap.put(taskId, STATUS_FAILED);
-      taskErrorMap.put(taskId, "Задача была прервана: " + e.getMessage());
-      log.error("Задача {} была прервана", taskId, e);
-      return CompletableFuture.failedFuture(e);
 
     } catch (Exception e) {
       taskStatusMap.put(taskId, STATUS_FAILED);
@@ -262,23 +257,55 @@ public class AsyncTaskService {
   }
 
   public Map<String, Object> getTaskInfo(String taskId) {
-    String status = getTaskStatus(taskId);
+    String status = taskStatusMap.get(taskId);
 
     if (status == null) {
-      return Map.of("error", "Задача не найдена");
+      Map<String, Object> response = new HashMap<>();
+      response.put("error", "Задача не найдена");
+      return response;
     }
 
-    Map<String, Object> info = new ConcurrentHashMap<>();
+    Map<String, Object> info = new HashMap<>();
     info.put("taskId", taskId);
     info.put("status", status);
-    info.put("statusDescription", getStatusDescription(status));
-    info.put("progress", getTaskProgress(taskId));
-    info.put("result", getTaskResult(taskId));
-    info.put("error", getTaskError(taskId));
-    info.put("startTime", taskStartTimeMap.get(taskId));
 
-    if (taskStartTimeMap.containsKey(taskId)) {
-      long durationSeconds = Duration.between(taskStartTimeMap.get(taskId), LocalDateTime.now()).getSeconds();
+    // Описание статуса
+    String statusDesc;
+    switch (status) {
+      case STATUS_PENDING:
+        statusDesc = "Ожидает выполнения";
+        break;
+      case STATUS_RUNNING:
+        statusDesc = "Выполняется";
+        break;
+      case STATUS_COMPLETED:
+        statusDesc = "Завершена успешно";
+        break;
+      case STATUS_FAILED:
+        statusDesc = "Завершена с ошибкой";
+        break;
+      default:
+        statusDesc = "Неизвестный статус";
+    }
+    info.put("statusDescription", statusDesc);
+
+    Integer progress = taskProgressMap.get(taskId);
+    info.put("progress", progress != null ? progress : 0);
+
+    String result = taskResultMap.get(taskId);
+    if (result != null) {
+      info.put("result", result);
+    }
+
+    String error = taskErrorMap.get(taskId);
+    if (error != null) {
+      info.put("error", error);
+    }
+
+    LocalDateTime startTime = taskStartTimeMap.get(taskId);
+    if (startTime != null) {
+      info.put("startTime", startTime.toString());
+      long durationSeconds = Duration.between(startTime, LocalDateTime.now()).getSeconds();
       info.put("durationSeconds", durationSeconds);
     }
 
