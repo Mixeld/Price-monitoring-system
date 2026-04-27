@@ -19,8 +19,6 @@ class PriceTrackerApplicationSimpleTest {
 
   @Test
   void testMainMethodLoadsContext() {
-    // Просто проверяем, что main не бросает исключений
-    // (реальный запуск Spring может быть медленным)
     PriceTrackerApplication.main(new String[]{});
   }
 }
