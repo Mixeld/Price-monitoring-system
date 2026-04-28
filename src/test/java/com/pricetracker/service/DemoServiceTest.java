@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -18,76 +19,92 @@ import static org.mockito.Mockito.*;
 @DisplayName("Unit-тесты для DemoService")
 class DemoServiceTest {
 
-  @Mock
-  private CategoryRepository categoryRepository;
-
-  @InjectMocks
-  private DemoService demoService;
+  @Mock private CategoryRepository categoryRepository;
+  @InjectMocks private DemoService demoService;
 
   @Test
-  @DisplayName("saveWithoutTransaction должен вызвать save и бросить исключение")
-  void saveWithoutTransaction_shouldCallSaveAndThrowException() {
-    // Arrange
-    // Моделируем успешное сохранение
+  @DisplayName("Покрытие saveWithoutTransaction: успешное сохранение")
+  void testSaveWithoutTransactionSuccess() {
+    // Настройка - save не выбрасывает исключение
     when(categoryRepository.save(any(Category.class))).thenReturn(new Category());
 
-    // Act & Assert
-    // Проверяем, что метод бросает именно то исключение, которое стоит в конце
+    // Вызов метода и проверка, что выбрасывается последнее исключение
     assertThatThrownBy(() -> demoService.saveWithoutTransaction())
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasMessage("Ошибка! Но транзакции нет, поэтому данные не откатятся.");
 
-    // Verify
-    // Убеждаемся, что метод save был вызван ровно один раз
+    // Проверка, что save был вызван ровно один раз
     verify(categoryRepository, times(1)).save(any(Category.class));
   }
 
   @Test
-  @DisplayName("saveWithoutTransaction должен обрабатывать ошибку сохранения")
-  void saveWithoutTransaction_shouldHandleSaveException() {
-    // Arrange
-    // Моделируем ошибку при сохранении
-    when(categoryRepository.save(any(Category.class)))
-        .thenThrow(new DataIntegrityViolationException("DB error"));
+  @DisplayName("Покрытие saveWithoutTransaction: DataAccessException при сохранении")
+  void testSaveWithoutTransactionDataAccessException() {
+    // Настройка - save выбрасывает DataAccessException
+    DataAccessException dataAccessException = new DataAccessException("DB connection failed") {};
+    when(categoryRepository.save(any(Category.class))).thenThrow(dataAccessException);
 
-    // Act & Assert
-    // Проверяем, что метод перехватывает ошибку и бросает свою
+    // Вызов метода и проверка, что исключение оборачивается в DataIntegrityViolationException
     assertThatThrownBy(() -> demoService.saveWithoutTransaction())
         .isInstanceOf(DataIntegrityViolationException.class)
-        .hasMessage("Не удалось сохранить категорию без транзакции");
+        .hasMessage("Не удалось сохранить категорию без транзакции")
+        .hasCause(dataAccessException);
 
-    // Verify
+    // Проверка, что save был вызван ровно один раз
     verify(categoryRepository, times(1)).save(any(Category.class));
   }
 
   @Test
-  @DisplayName("saveWithTransaction должен вызвать save и бросить исключение")
-  void saveWithTransaction_shouldCallSaveAndThrowException() {
-    // Arrange
+  @DisplayName("Покрытие saveWithTransaction: успешное сохранение")
+  void testSaveWithTransactionSuccess() {
+    // Настройка - save не выбрасывает исключение
     when(categoryRepository.save(any(Category.class))).thenReturn(new Category());
 
-    // Act & Assert
+    // Вызов метода и проверка, что выбрасывается последнее исключение
     assertThatThrownBy(() -> demoService.saveWithTransaction())
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasMessage("Ошибка! Но транзакция есть, поэтому данные откатятся.");
 
-    // Verify
+    // Проверка, что save был вызван ровно один раз
     verify(categoryRepository, times(1)).save(any(Category.class));
   }
 
   @Test
-  @DisplayName("saveWithTransaction должен обрабатывать ошибку сохранения")
-  void saveWithTransaction_shouldHandleSaveException() {
-    // Arrange
-    when(categoryRepository.save(any(Category.class)))
-        .thenThrow(new DataIntegrityViolationException("DB error"));
+  @DisplayName("Покрытие saveWithTransaction: DataAccessException при сохранении")
+  void testSaveWithTransactionDataAccessException() {
+    // Настройка - save выбрасывает DataAccessException
+    DataAccessException dataAccessException = new DataAccessException("DB connection failed") {};
+    when(categoryRepository.save(any(Category.class))).thenThrow(dataAccessException);
 
-    // Act & Assert
+    // Вызов метода и проверка, что исключение оборачивается в DataIntegrityViolationException
+    assertThatThrownBy(() -> demoService.saveWithTransaction())
+        .isInstanceOf(DataIntegrityViolationException.class)
+        .hasMessage("Не удалось сохранить категорию с транзакцией")
+        .hasCause(dataAccessException);
+
+    // Проверка, что save был вызван ровно один раз
+    verify(categoryRepository, times(1)).save(any(Category.class));
+  }
+
+  @Test
+  @DisplayName("Покрытие обоих методов в одном тесте для проверки интеграции")
+  void testBothMethodsCoverage() {
+    // Тест для saveWithoutTransaction - успешное сохранение
+    when(categoryRepository.save(any(Category.class)))
+        .thenReturn(new Category())
+        .thenThrow(new DataAccessException("DB error") {});
+
+    // Первый вызов - saveWithoutTransaction успешно сохраняет, но выбрасывает последнее исключение
+    assertThatThrownBy(() -> demoService.saveWithoutTransaction())
+        .isInstanceOf(DataIntegrityViolationException.class)
+        .hasMessage("Ошибка! Но транзакции нет, поэтому данные не откатятся.");
+
+    // Второй вызов - saveWithTransaction выбрасывает DataAccessException
     assertThatThrownBy(() -> demoService.saveWithTransaction())
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasMessage("Не удалось сохранить категорию с транзакцией");
 
-    // Verify
-    verify(categoryRepository, times(1)).save(any(Category.class));
+    // Проверка, что save был вызван 2 раза
+    verify(categoryRepository, times(2)).save(any(Category.class));
   }
 }

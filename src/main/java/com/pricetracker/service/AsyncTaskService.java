@@ -87,7 +87,7 @@ public class AsyncTaskService {
       var products = productRepository.findByCategoryName(categoryName);
 
       if (products.isEmpty()) {
-        throw new ResourceNotFoundException("No products found in category: " + categoryName);
+        throw new ResourceNotFoundException("Category", "name", categoryName);
       }
 
       int total = products.size();
@@ -96,14 +96,13 @@ public class AsyncTaskService {
       for (int i = 0; i < products.size(); i++) {
         Product product = products.get(i);
 
-        // ✅ ИСПРАВЛЕННЫЙ ВЫЗОВ - порядок параметров правильный!
         PriceHistoryDto historyDto = new PriceHistoryDto(
-            null,                 // id
-            product.getPrice(),   // price
-            LocalDateTime.now(),  // dateRecorded
-            product.getId(),      // productId (4-й параметр)
-            null,                 // storeId
-            null                  // storeName
+            null,
+            product.getPrice(),
+            LocalDateTime.now(),
+            null,
+            product.getId(),
+            null
         );
         priceHistoryService.recordPrice(historyDto);
 
@@ -125,6 +124,13 @@ public class AsyncTaskService {
 
       log.info("Задача {} успешно завершена. {}", taskId, result);
       return CompletableFuture.completedFuture(result);
+
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      taskStatusMap.put(taskId, STATUS_FAILED);
+      taskErrorMap.put(taskId, "Задача была прервана: " + e.getMessage());
+      log.error("Задача {} была прервана", taskId, e);
+      return CompletableFuture.failedFuture(e);
 
     } catch (Exception e) {
       taskStatusMap.put(taskId, STATUS_FAILED);
@@ -289,9 +295,11 @@ public class AsyncTaskService {
     }
     info.put("statusDescription", statusDesc);
 
+    // Прогресс (защита от null)
     Integer progress = taskProgressMap.get(taskId);
     info.put("progress", progress != null ? progress : 0);
 
+    // Результат (только если не null)
     String result = taskResultMap.get(taskId);
     if (result != null) {
       info.put("result", result);

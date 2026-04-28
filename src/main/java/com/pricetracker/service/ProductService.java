@@ -176,8 +176,6 @@ public class ProductService {
   }
 
   private Optional<ProductDto> processProductWithCategory(ProductDto dto) {
-    // Добавляем явную проверку на дубликат имени ПЕРЕД сохранением.
-    // Это гарантирует, что исключение будет брошено и его поймает тест.
     if (dto.name() != null && productRepository.existsByName(dto.name())) {
       throw new DuplicateResourceException("Product", "name", dto.name());
     }
@@ -208,8 +206,6 @@ public class ProductService {
     List<ProductDto> createdProducts = new ArrayList<>();
 
     for (ProductDto dto : bulkDto.products()) {
-      // Если здесь произойдёт ошибка, предыдущие продукты НЕ откатятся!
-      // Добавляем ту же проверку, чтобы исключение было консистентным
       if (dto.name() != null && productRepository.existsByName(dto.name())) {
         throw new DuplicateResourceException("Product", "name", dto.name());
       }
