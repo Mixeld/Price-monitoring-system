@@ -81,7 +81,6 @@ public class ProductService {
 
   @Transactional
   public void deleteProduct(Long id) {
-    // Проверка на существование перед удалением, чтобы избежать EmptyResultDataAccessException
     if (!productRepository.existsById(id)) {
       throw new ResourceNotFoundException("Product", "id", id);
     }

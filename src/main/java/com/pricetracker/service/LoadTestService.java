@@ -26,8 +26,7 @@ public class LoadTestService {
   private final ThreadSafeCounters.AtomicCounter errorCounter = new ThreadSafeCounters.AtomicCounter();
 
   public Map<String, Object> runLoadTest(int threads, int requestsPerThread) throws InterruptedException {
-    log.info("Запуск нагрузочного тестирования");
-    log.info("Потоков: {}, Запросов на поток: {}", threads, requestsPerThread);
+    log.info("Запуск нагрузочного тестирования: {} потоков, {} запросов на поток", threads, requestsPerThread);
 
     ExecutorService executor = Executors.newFixedThreadPool(threads);
     CountDownLatch latch = new CountDownLatch(threads);
@@ -47,7 +46,7 @@ public class LoadTestService {
             requestCounter.increment();
 
             if (j % 3 == 0) {
-              var products = productService.getProducts(null);
+              productService.getProducts(null);
               successfulRequests.incrementAndGet();
             } else if (j % 3 == 1) {
               ProductDto dto = new ProductDto(
@@ -61,25 +60,36 @@ public class LoadTestService {
               successfulRequests.incrementAndGet();
             } else {
               String taskId = asyncTaskService.startDataExport("product", 1L);
+
+              boolean taskFinished = false;
               int retries = 0;
-              while (retries < 30) {
-                String status = asyncTaskService.getTaskStatus(taskId);
+
+              while (retries < 30 && !taskFinished) {
+                Map<String, Object> taskInfo = asyncTaskService.getTaskInfo(taskId);
+                String status = (String) taskInfo.get("status");
+
                 if (AsyncTaskService.STATUS_COMPLETED.equals(status)) {
                   successfulRequests.incrementAndGet();
-                  break;
+                  taskFinished = true;
                 } else if (AsyncTaskService.STATUS_FAILED.equals(status)) {
                   failedRequests.incrementAndGet();
                   errorCounter.increment();
-                  break;
+                  taskFinished = true;
+                } else {
+                  Thread.sleep(100); // Опрос статуса
+                  retries++;
                 }
-                Thread.sleep(100);
-                retries++;
+              }
+
+              if (!taskFinished) {
+                log.warn("Задача {} не завершилась по таймауту", taskId);
+                failedRequests.incrementAndGet();
               }
             }
           } catch (Exception e) {
             failedRequests.incrementAndGet();
             errorCounter.increment();
-            log.error("Ошибка в нагрузочном тесте", e);
+            log.error("Ошибка в потоке {}: {}", threadId, e.getMessage());
           }
         }
 
@@ -96,7 +106,8 @@ public class LoadTestService {
     long duration = endTime - startTime;
     int totalRequests = successfulRequests.get() + failedRequests.get();
 
-    Map<String, Object> results = Map.of(
+    // Формируем отчет
+    return Map.of(
         "testConfig", Map.of(
             "threads", threads,
             "requestsPerThread", requestsPerThread,
@@ -105,29 +116,22 @@ public class LoadTestService {
         "results", Map.of(
             "successful", successfulRequests.get(),
             "failed", failedRequests.get(),
-            "successRate", String.format("%.2f%%", (successfulRequests.get() * 100.0 / totalRequests)),
+            "successRate", String.format("%.2f%%", (totalRequests > 0 ? successfulRequests.get() * 100.0 / totalRequests : 0)),
             "totalTimeMs", duration,
-            "throughput", String.format("%.2f req/sec", (totalRequests * 1000.0 / duration)),
-            "avgResponseTimeMs", duration * 1000.0 / totalRequests
+            "throughput", String.format("%.2f req/sec", (duration > 0 ? totalRequests * 1000.0 / duration : 0)),
+            "avgResponseTimeMs", (totalRequests > 0 ? (double) duration / totalRequests : 0)
         ),
         "timestamp", LocalDateTime.now().toString()
     );
-
-    log.info("Результаты нагрузочного тестирования");
-    log.info("Всего запросов: {}", totalRequests);
-    log.info("Успешных: {}", successfulRequests.get());
-    log.info("Проваленных: {}", failedRequests.get());
-    log.info("Throughput: {} req/sec", (totalRequests * 1000.0 / duration));
-
-    return results;
   }
 
   public Map<String, Object> getLoadTestStats() {
+    long total = requestCounter.getCount();
+    long errors = errorCounter.getCount();
     return Map.of(
-        "totalRequests", requestCounter.getCount(),
-        "errors", errorCounter.getCount(),
-        "errorRate", String.format("%.2f%%", requestCounter.getCount() > 0 ?
-            (errorCounter.getCount() * 100.0 / requestCounter.getCount()) : 0)
+        "totalRequests", total,
+        "errors", errors,
+        "errorRate", String.format("%.2f%%", total > 0 ? (errors * 100.0 / total) : 0)
     );
   }
 

@@ -186,12 +186,7 @@ public class ProductController {
     return ResponseEntity.ok("Cache cleared successfully");
   }
 
-  /**
-   * Parses sort parameter from string format: "field,asc" or "field1,asc,field2,desc"
-   *
-   * @param sort sort string parameter
-   * @return Sort object for pagination
-   */
+
   private Sort parseSortParameter(String sort) {
     if (sort == null || sort.isBlank()) {
       return Sort.by("id").ascending();

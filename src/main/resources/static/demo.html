@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Демонстрация многопоточности - Price Tracker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 { color: #2c3e50; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+    .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .card h3 { color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+    .param { margin-bottom: 10px; }
+    .param label { display: inline-block; width: 150px; font-weight: bold; }
+    .param input { padding: 5px; width: 100px; }
+    button { background: #3498db; color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+    button:hover { background: #2980b9; }
+    .result { margin-top: 15px; background: #ecf0f1; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; white-space: pre-wrap; max-height: 300px; overflow: auto; }
+    .success { color: green; font-weight: bold; }
+    .error { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Демонстрация многопоточности в Java</h1>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Race Condition: Счетчики</h3>
+      <div class="param"><label>Потоков:</label><input type="number" id="counterThreads" value="100"></div>
+      <div class="param"><label>Инкрементов:</label><input type="number" id="counterIncrements" value="1000"></div>
+      <button onclick="testCounters()">Запустить тест</button>
+      <div id="counterResult" class="result">Ожидание теста...</div>
+    </div>
+
+    <div class="card">
+      <h3>Race Condition: Инвентарь</h3>
+      <div class="param"><label>Потоков:</label><input type="number" id="invThreads" value="100"></div>
+      <div class="param"><label>Продаж на поток:</label><input type="number" id="invSales" value="10"></div>
+      <button onclick="testInventory()">Запустить тест</button>
+      <div id="inventoryResult" class="result">Ожидание теста...</div>
+    </div>
+
+    <div class="card">
+      <h3>Асинхронная задача (Async)</h3>
+      <div class="param"><label>Категория:</label><input type="text" id="category" value="Electronics"></div>
+      <div class="param"><label>Новая цена:</label><input type="text" id="price" value="999.99"></div>
+      <button onclick="startAsyncTask()">Запустить задачу</button>
+      <div id="asyncStatus" class="result">Ожидание задачи...</div>
+    </div>
+
+    <div class="card">
+      <h3>Нагрузочное тестирование</h3>
+      <div class="param"><label>Потоков:</label><input type="number" id="loadThreads" value="10"></div>
+      <div class="param"><label>Запросов на поток:</label><input type="number" id="loadRequests" value="50"></div>
+      <button onclick="runLoadTest()">Запустить тест</button>
+      <button onclick="getLoadStats()" style="background:#95a5a6">Статистика</button>
+      <div id="loadResult" class="result">Ожидание теста...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_URL = 'http://localhost:8080/api';
+
+  async function testCounters() {
+      const threads = document.getElementById('counterThreads').value;
+      const increments = document.getElementById('counterIncrements').value;
+
+      const response = await fetch(`${API_URL}/race/counters?threadsCount=${threads}&incrementsPerThread=${increments}`, {
+          method: 'POST'
+      });
+      const data = await response.json();
+
+      const unsafe = data.unsafeCounter;
+      const lost = unsafe.lostIncrements;
+
+      document.getElementById('counterResult').innerHTML = `
+          <div class="${lost > 0 ? 'error' : 'success'}">
+              <strong>Unsafe Counter:</strong> ${unsafe.result} / ${data.testConfig.expectedTotal}
+              ${lost > 0 ? `Потеряно ${lost} инкрементов` : ''}
+          </div>
+          <div class="success">
+              <strong>Atomic Counter:</strong> ${data.atomicCounter.result} / ${data.testConfig.expectedTotal}
+              (${data.atomicCounter.timeMs}ms)
+          </div>
+          <div class="success">
+              <strong>Synchronized Counter:</strong> ${data.synchronizedCounter.result} / ${data.testConfig.expectedTotal}
+              (${data.synchronizedCounter.timeMs}ms)
+          </div>
+      `;
+  }
+
+  async function testInventory() {
+      const threads = document.getElementById('invThreads').value;
+      const sales = document.getElementById('invSales').value;
+
+      const response = await fetch(`${API_URL}/race/inventory?threadsCount=${threads}&salesPerThread=${sales}`, {
+          method: 'POST'
+      });
+      const data = await response.json();
+
+      const unsafe = data.unsafe;
+      const lost = unsafe.lostItems;
+
+      document.getElementById('inventoryResult').innerHTML = `
+          <div class="${lost > 0 ? 'error' : 'success'}">
+              <strong>Unsafe Inventory:</strong> Остаток: ${unsafe.stock}
+              ${lost > 0 ? `Потеряно ${Math.abs(lost)} товаров` : ''}
+          </div>
+          <div class="success">
+              <strong>Synchronized Inventory:</strong> Остаток: ${data.synchronized.stock} (${data.synchronized.timeMs}ms)
+          </div>
+          <div class="success">
+              <strong>Atomic Inventory:</strong> Остаток: ${data.atomic.stock} (${data.atomic.timeMs}ms)
+          </div>
+          <div><strong>Ожидалось:</strong> ${data.expectedStock}</div>
+      `;
+  }
+
+  async function startAsyncTask() {
+      const category = document.getElementById('category').value;
+      const price = document.getElementById('price').value;
+
+      const response = await fetch(`${API_URL}/async/bulk-update?categoryName=${category}&newPrice=${price}`, {
+          method: 'POST'
+      });
+      const data = await response.json();
+      const taskId = data.taskId;
+
+      document.getElementById('asyncStatus').innerHTML = `Задача запущена! Task ID: ${taskId}`;
+
+      let attempts = 0;
+      const interval = setInterval(async () => {
+          const statusRes = await fetch(`${API_URL}/tasks/${taskId}/status`);
+          const status = await statusRes.json();
+
+          document.getElementById('asyncStatus').innerHTML = `
+              <strong>Статус:</strong> ${status.status} (${status.statusDescription})<br>
+              <strong>Прогресс:</strong> ${status.progress}%<br>
+              ${status.result ? `<strong>Результат:</strong> ${status.result}<br>` : ''}
+              ${status.error ? `<strong class="error">Ошибка:</strong> ${status.error}<br>` : ''}
+          `;
+
+          if (status.status === 'COMPLETED' || status.status === 'FAILED') {
+              clearInterval(interval);
+          }
+
+          if (++attempts > 60) {
+              clearInterval(interval);
+              document.getElementById('asyncStatus').innerHTML += '<br>Таймаут ожидания';
+          }
+      }, 1000);
+  }
+
+  async function runLoadTest() {
+      const threads = document.getElementById('loadThreads').value;
+      const requests = document.getElementById('loadRequests').value;
+
+      document.getElementById('loadResult').innerHTML = 'Запуск нагрузочного теста...';
+
+      const response = await fetch(`${API_URL}/loadtest/run?threads=${threads}&requestsPerThread=${requests}`, {
+          method: 'POST'
+      });
+      const data = await response.json();
+
+      document.getElementById('loadResult').innerHTML = `
+          <div><strong>Результаты теста:</strong></div>
+          <div>Успешных: ${data.results.successful}</div>
+          <div>Проваленных: ${data.results.failed}</div>
+          <div>Успешность: ${data.results.successRate}</div>
+          <div>Throughput: ${data.results.throughput}</div>
+          <div>Среднее время ответа: ${data.results.avgResponseTimeMs}ms</div>
+          <div>Общее время: ${data.results.totalTimeMs}ms</div>
+      `;
+  }
+
+  async function getLoadStats() {
+      const response = await fetch(`${API_URL}/loadtest/stats`);
+      const data = await response.json();
+
+      document.getElementById('loadResult').innerHTML = `
+          <div><strong>Общая статистика:</strong></div>
+          <div>Всего запросов: ${data.totalRequests}</div>
+          <div>Ошибок: ${data.errors}</div>
+          <div>Процент ошибок: ${data.errorRate}</div>
+      `;
+  }
+</script>
+</body>
+</html>

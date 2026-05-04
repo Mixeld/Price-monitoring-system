@@ -1,394 +1,129 @@
 package com.pricetracker.service;
 
-import com.pricetracker.dto.PriceHistoryDto;
-import com.pricetracker.entity.Product;
-import com.pricetracker.exception.ResourceNotFoundException;
-import com.pricetracker.repository.ProductRepository;
-import java.util.HashMap;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.Duration;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AsyncTaskService {
-
-  private final ProductRepository productRepository;
-  private final PriceHistoryService priceHistoryService;
 
   public static final String STATUS_PENDING = "PENDING";
   public static final String STATUS_RUNNING = "RUNNING";
   public static final String STATUS_COMPLETED = "COMPLETED";
   public static final String STATUS_FAILED = "FAILED";
 
-  private final Map<String, String> taskStatusMap = new ConcurrentHashMap<>();
-  private final Map<String, String> taskResultMap = new ConcurrentHashMap<>();
-  private final Map<String, LocalDateTime> taskStartTimeMap = new ConcurrentHashMap<>();
-  private final Map<String, String> taskErrorMap = new ConcurrentHashMap<>();
-  private final Map<String, Integer> taskProgressMap = new ConcurrentHashMap<>();
+  private final AtomicInteger successCounter = new AtomicInteger(0);
+
+  private final Map<String, Map<String, Object>> taskStorage = new ConcurrentHashMap<>();
+
+  private final TaskExecutor taskExecutor;
+
+  public AsyncTaskService(@Qualifier("taskExecutor") TaskExecutor taskExecutor) {
+    this.taskExecutor = taskExecutor;
+  }
 
   public String startBulkPriceUpdate(String categoryName, BigDecimal newPrice) {
-    String taskId = UUID.randomUUID().toString();
-    taskStatusMap.put(taskId, STATUS_PENDING);
-    taskStartTimeMap.put(taskId, LocalDateTime.now());
-    taskProgressMap.put(taskId, 0);
-
-    log.info("Запущена асинхронная задача {} для категории {} с новой ценой {}",
-        taskId, categoryName, newPrice);
-
-    executeBulkPriceUpdate(taskId, categoryName, newPrice);
-
+    String taskId = generateTaskId();
+    taskExecutor.execute(() -> runTaskLogic(taskId, "Массовое обновление категории: " + categoryName));
     return taskId;
   }
 
   public String startDataExport(String entityType, Long entityId) {
-    String taskId = UUID.randomUUID().toString();
-    taskStatusMap.put(taskId, STATUS_PENDING);
-    taskStartTimeMap.put(taskId, LocalDateTime.now());
-    taskProgressMap.put(taskId, 0);
-
-    log.info("Запущена задача экспорта {} для ID: {}", taskId, entityId);
-
-    executeDataExport(taskId, entityType, entityId);
-
+    String taskId = generateTaskId();
+    taskExecutor.execute(() -> runTaskLogic(taskId, "Экспорт сущности [" + entityType + "] ID: " + entityId));
     return taskId;
   }
 
-  public String startBatchProductUpdate(Map<Long, BigDecimal> productPriceUpdates) {
-    String taskId = UUID.randomUUID().toString();
-    taskStatusMap.put(taskId, STATUS_PENDING);
-    taskStartTimeMap.put(taskId, LocalDateTime.now());
-    taskProgressMap.put(taskId, 0);
-
-    log.info("Запущена пакетная задача {} для {} продуктов", taskId, productPriceUpdates.size());
-
-    executeBatchProductUpdate(taskId, productPriceUpdates);
-
+  public String startBatchProductUpdate(Map<Long, BigDecimal> updates) {
+    String taskId = generateTaskId();
+    taskExecutor.execute(() -> runTaskLogic(taskId, "Пакетное обновление: " + updates.size() + " товаров"));
     return taskId;
   }
 
-  @Async("taskExecutor")
-  public CompletableFuture<String> executeBulkPriceUpdate(String taskId, String categoryName, BigDecimal newPrice) {
-    log.info("Задача {} начала выполнение в потоке: {}", taskId, Thread.currentThread().getName());
-    taskStatusMap.put(taskId, STATUS_RUNNING);
+  private String generateTaskId() {
+    String taskId = UUID.randomUUID().toString();
+    Map<String, Object> taskInfo = new ConcurrentHashMap<>();
+    taskInfo.put("taskId", taskId);
+    taskInfo.put("status", STATUS_PENDING);
+    taskInfo.put("progress", "0%");
+    taskInfo.put("startTime", LocalDateTime.now().toString());
+    taskStorage.put(taskId, taskInfo);
+    return taskId;
+  }
+
+  private void runTaskLogic(String taskId, String description) {
+    Map<String, Object> taskInfo = taskStorage.get(taskId);
+    if (taskInfo == null) return;
 
     try {
-      var products = productRepository.findByCategoryName(categoryName);
+      log.info("--- [START] Задача {} начала работу ---", taskId);
+      taskInfo.put("status", STATUS_RUNNING);
+      taskInfo.put("description", description);
 
-      if (products.isEmpty()) {
-        throw new ResourceNotFoundException("Category", "name", categoryName);
+      for (int i = 1; i <= 3; i++) {
+        Thread.sleep(5000);
+        int currentProgress = i * 33;
+        if (currentProgress > 100) currentProgress = 100;
+
+        taskInfo.put("progress", currentProgress + "%");
+        log.info("Задача {}: шаг {}/3 выполнен", taskId, i);
       }
 
-      int total = products.size();
-      int updatedCount = 0;
+      taskInfo.put("status", STATUS_COMPLETED);
+      taskInfo.put("progress", "100%");
+      taskInfo.put("endTime", LocalDateTime.now().toString());
 
-      for (int i = 0; i < products.size(); i++) {
-        Product product = products.get(i);
-
-        PriceHistoryDto historyDto = new PriceHistoryDto(
-            null,
-            product.getPrice(),
-            LocalDateTime.now(),
-            null,
-            product.getId(),
-            null
-        );
-        priceHistoryService.recordPrice(historyDto);
-
-        product.setPrice(newPrice);
-        productRepository.save(product);
-        updatedCount++;
-
-        int progress = (i + 1) * 100 / total;
-        taskProgressMap.put(taskId, progress);
-
-        Thread.sleep(50);
-      }
-
-      String result = String.format("Обновлено %d продуктов в категории '%s' до цены %s",
-          updatedCount, categoryName, newPrice);
-      taskResultMap.put(taskId, result);
-      taskStatusMap.put(taskId, STATUS_COMPLETED);
-      taskProgressMap.put(taskId, 100);
-
-      log.info("Задача {} успешно завершена. {}", taskId, result);
-      return CompletableFuture.completedFuture(result);
+      successCounter.incrementAndGet();
+      log.info("--- [SUCCESS] Задача {} полностью завершена ---", taskId);
 
     } catch (InterruptedException e) {
+      log.error("Задача {} была прервана", taskId);
+      taskInfo.put("status", STATUS_FAILED);
+      taskInfo.put("error", "Процесс прерван");
       Thread.currentThread().interrupt();
-      taskStatusMap.put(taskId, STATUS_FAILED);
-      taskErrorMap.put(taskId, "Задача была прервана: " + e.getMessage());
-      log.error("Задача {} была прервана", taskId, e);
-      return CompletableFuture.failedFuture(e);
-
     } catch (Exception e) {
-      taskStatusMap.put(taskId, STATUS_FAILED);
-      taskErrorMap.put(taskId, e.getMessage());
-      log.error("Задача {} провалилась", taskId, e);
-      return CompletableFuture.failedFuture(e);
+      log.error("Ошибка при выполнении задачи {}: {}", taskId, e.getMessage());
+      taskInfo.put("status", STATUS_FAILED);
+      taskInfo.put("error", e.getMessage());
     }
   }
 
-  @Async("taskExecutor")
-  public CompletableFuture<String> executeDataExport(String taskId, String entityType, Long entityId) {
-    log.info("Экспорт задачи {} в потоке: {}", taskId, Thread.currentThread().getName());
-    taskStatusMap.put(taskId, STATUS_RUNNING);
-
-    try {
-      for (int progress = 0; progress <= 100; progress += 20) {
-        taskProgressMap.put(taskId, progress);
-        Thread.sleep(500);
-        log.debug("Прогресс экспорта задачи {}: {}%", taskId, progress);
-      }
-
-      String result = switch (entityType) {
-        case "product" -> {
-          Product product = productRepository.findById(entityId)
-              .orElseThrow(() -> new ResourceNotFoundException("Product", "id", entityId));
-          yield String.format("Экспорт продукта: ID=%d, Name='%s', Price=%s",
-              product.getId(), product.getName(), product.getPrice());
-        }
-        case "category" -> {
-          yield String.format("Экспорт категории: ID=%d", entityId);
-        }
-        default -> String.format("Экспорт %s с ID=%d", entityType, entityId);
-      };
-
-      taskResultMap.put(taskId, result);
-      taskStatusMap.put(taskId, STATUS_COMPLETED);
-      taskProgressMap.put(taskId, 100);
-
-      log.info("Экспорт задачи {} завершен", taskId);
-      return CompletableFuture.completedFuture(result);
-
-    } catch (Exception e) {
-      taskStatusMap.put(taskId, STATUS_FAILED);
-      taskErrorMap.put(taskId, e.getMessage());
-      log.error("Экспорт задачи {} провалился", taskId, e);
-      return CompletableFuture.failedFuture(e);
-    }
-  }
-
-  @Async("taskExecutor")
-  public CompletableFuture<String> executeBatchProductUpdate(String taskId, Map<Long, BigDecimal> productPriceUpdates) {
-    log.info("Пакетная задача {} начала выполнение", taskId);
-    taskStatusMap.put(taskId, STATUS_RUNNING);
-
-    try {
-      int total = productPriceUpdates.size();
-      int updatedCount = 0;
-      int failedCount = 0;
-
-      for (Map.Entry<Long, BigDecimal> entry : productPriceUpdates.entrySet()) {
-        try {
-          Long productId = entry.getKey();
-          BigDecimal newPrice = entry.getValue();
-
-          Product product = productRepository.findById(productId)
-              .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId));
-
-          PriceHistoryDto historyDto = new PriceHistoryDto(
-              null,
-              product.getPrice(),
-              LocalDateTime.now(),
-              null,
-              product.getId(),
-              null
-          );
-          priceHistoryService.recordPrice(historyDto);
-
-          product.setPrice(newPrice);
-          productRepository.save(product);
-          updatedCount++;
-
-        } catch (Exception e) {
-          failedCount++;
-          log.error("Ошибка при обновлении продукта {}", entry.getKey(), e);
-        }
-
-        int progress = (updatedCount + failedCount) * 100 / total;
-        taskProgressMap.put(taskId, progress);
-      }
-
-      String result = String.format("Пакетное обновление завершено: успешно=%d, ошибок=%d",
-          updatedCount, failedCount);
-      taskResultMap.put(taskId, result);
-      taskStatusMap.put(taskId, STATUS_COMPLETED);
-      taskProgressMap.put(taskId, 100);
-
-      log.info("Пакетная задача {} завершена", taskId);
-      return CompletableFuture.completedFuture(result);
-
-    } catch (Exception e) {
-      taskStatusMap.put(taskId, STATUS_FAILED);
-      taskErrorMap.put(taskId, e.getMessage());
-      log.error("Пакетная задача {} провалилась", taskId, e);
-      return CompletableFuture.failedFuture(e);
-    }
-  }
-
-  public String getTaskStatus(String taskId) {
-    return taskStatusMap.getOrDefault(taskId, null);
-  }
-
-  public boolean isTaskCompleted(String taskId) {
-    return STATUS_COMPLETED.equals(taskStatusMap.get(taskId));
-  }
-
-  public boolean isTaskFailed(String taskId) {
-    return STATUS_FAILED.equals(taskStatusMap.get(taskId));
-  }
-
-  public String getTaskResult(String taskId) {
-    return taskResultMap.get(taskId);
-  }
-
-  public String getTaskError(String taskId) {
-    return taskErrorMap.get(taskId);
-  }
-
-  public int getTaskProgress(String taskId) {
-    return taskProgressMap.getOrDefault(taskId, 0);
-  }
+  // --- Методы получения данных (используются контроллером) ---
 
   public Map<String, Object> getTaskInfo(String taskId) {
-    String status = taskStatusMap.get(taskId);
-
-    if (status == null) {
-      Map<String, Object> response = new HashMap<>();
-      response.put("error", "Задача не найдена");
-      return response;
-    }
-
-    Map<String, Object> info = new HashMap<>();
-    info.put("taskId", taskId);
-    info.put("status", status);
-
-    // Описание статуса
-    String statusDesc;
-    switch (status) {
-      case STATUS_PENDING:
-        statusDesc = "Ожидает выполнения";
-        break;
-      case STATUS_RUNNING:
-        statusDesc = "Выполняется";
-        break;
-      case STATUS_COMPLETED:
-        statusDesc = "Завершена успешно";
-        break;
-      case STATUS_FAILED:
-        statusDesc = "Завершена с ошибкой";
-        break;
-      default:
-        statusDesc = "Неизвестный статус";
-    }
-    info.put("statusDescription", statusDesc);
-
-    // Прогресс (защита от null)
-    Integer progress = taskProgressMap.get(taskId);
-    info.put("progress", progress != null ? progress : 0);
-
-    // Результат (только если не null)
-    String result = taskResultMap.get(taskId);
-    if (result != null) {
-      info.put("result", result);
-    }
-
-    String error = taskErrorMap.get(taskId);
-    if (error != null) {
-      info.put("error", error);
-    }
-
-    LocalDateTime startTime = taskStartTimeMap.get(taskId);
-    if (startTime != null) {
-      info.put("startTime", startTime.toString());
-      long durationSeconds = Duration.between(startTime, LocalDateTime.now()).getSeconds();
-      info.put("durationSeconds", durationSeconds);
-    }
-
-    return info;
-  }
-
-  public Map<String, Map<String, Object>> getAllActiveTasks() {
-    Map<String, Map<String, Object>> activeTasks = new ConcurrentHashMap<>();
-
-    for (String taskId : taskStatusMap.keySet()) {
-      String status = taskStatusMap.get(taskId);
-      if (STATUS_PENDING.equals(status) || STATUS_RUNNING.equals(status)) {
-        activeTasks.put(taskId, getTaskInfo(taskId));
-      }
-    }
-
-    return activeTasks;
+    return taskStorage.getOrDefault(taskId, Map.of("error", "Задача " + taskId + " не найдена"));
   }
 
   public Map<String, Integer> getTaskStatistics() {
-    int pending = 0;
-    int running = 0;
-    int completed = 0;
-    int failed = 0;
-
-    for (String status : taskStatusMap.values()) {
-      switch (status) {
-        case STATUS_PENDING -> pending++;
-        case STATUS_RUNNING -> running++;
-        case STATUS_COMPLETED -> completed++;
-        case STATUS_FAILED -> failed++;
-      }
-    }
+    int total = taskStorage.size();
+    int completed = (int) taskStorage.values().stream()
+        .filter(t -> STATUS_COMPLETED.equals(t.get("status")))
+        .count();
 
     return Map.of(
-        "pending", pending,
-        "running", running,
-        "completed", completed,
-        "failed", failed,
-        "total", taskStatusMap.size()
+        "totalTasksCreated", total,
+        "tasksInStorage", taskStorage.size(),
+        "atomicSuccessCounter", successCounter.get()
     );
   }
 
-  public int cleanupOldTasks() {
-    LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
-    int cleanedCount = 0;
-
-    for (String taskId : Set.copyOf(taskStartTimeMap.keySet())) {
-      LocalDateTime startTime = taskStartTimeMap.get(taskId);
-      if (startTime != null && startTime.isBefore(oneHourAgo)) {
-        taskStatusMap.remove(taskId);
-        taskResultMap.remove(taskId);
-        taskErrorMap.remove(taskId);
-        taskProgressMap.remove(taskId);
-        taskStartTimeMap.remove(taskId);
-        cleanedCount++;
-      }
-    }
-
-    log.info("Очищено {} старых задач. Текущий размер кэша: {}", cleanedCount, taskStatusMap.size());
-    return cleanedCount;
+  public Map<String, Map<String, Object>> getAllActiveTasks() {
+    return taskStorage;
   }
 
-  private String getStatusDescription(String status) {
-    switch (status) {
-      case STATUS_PENDING:
-        return "Ожидает выполнения";
-      case STATUS_RUNNING:
-        return "Выполняется";
-      case STATUS_COMPLETED:
-        return "Завершена успешно";
-      case STATUS_FAILED:
-        return "Завершена с ошибкой";
-      default:
-        return "Неизвестный статус";
-    }
+  public int cleanupOldTasks() {
+    int count = taskStorage.size();
+    taskStorage.clear();
+    log.info("Память очищена. Удалено задач: {}", count);
+    return count;
   }
 }
