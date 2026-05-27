@@ -7,10 +7,13 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-pricetracker}
       POSTGRES_USER: ${POSTGRES_USER:-pricetracker}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pricetracker}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pricetracker} -d ${POSTGRES_DB:-pricetracker}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   app:
     build:
@@ -19,7 +22,8 @@ services:
     container_name: pricetracker-app
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: 8080
@@ -29,11 +33,16 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_SHOW_SQL: "false"
       LOG_PATH: /app/logs
-      JAVA_OPTS: -Xms256m -Xmx512m
+      JAVA_OPTS: -XX:MaxRAMPercentage=75.0
     ports:
-      - "8080:8080"
+      - "8081:8080"
     volumes:
       - app_logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
 
 volumes:
   postgres_data:

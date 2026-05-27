@@ -4,19 +4,16 @@ WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 
-RUN mvn clean package -DskipTests
+RUN mvn clean package -Dmaven.test.skip=true
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-ENV SERVER_PORT=8080
-ENV JAVA_OPTS=""
-ENV LOG_PATH=/app/logs
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
+ENV PORT=8080
 
 COPY --from=build /app/target/*.jar app.jar
 
-RUN mkdir -p /app/logs
-
 EXPOSE 8080
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dserver.port=$SERVER_PORT -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dspring.profiles.active=prod -Dserver.port=$PORT -jar app.jar"]

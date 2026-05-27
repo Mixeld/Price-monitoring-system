@@ -2,7 +2,7 @@
 <configuration>
 
   <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
-  <property name="LOG_PATH" value="${LOG_PATH:-/app/logs}"/>
+  <property name="LOG_PATH" value="${LOG_PATH:-/home/Mixeld/IdeaProjects/logs}"/>
   <property name="MAX_FILE_SIZE" value="${LOG_MAX_FILE_SIZE:-10MB}"/>
   <property name="MAX_HISTORY" value="${LOG_MAX_HISTORY:-30}"/>
   <property name="TOTAL_SIZE_CAP" value="${LOG_TOTAL_SIZE_CAP:-1GB}"/>
@@ -54,7 +54,6 @@
   <logger name="org.springframework" level="${LOG_LEVEL_SPRING:-WARN}"/>
   <logger name="org.hibernate" level="${LOG_LEVEL_HIBERNATE:-WARN}"/>
   <logger name="org.hibernate.SQL" level="${LOG_LEVEL_SQL:-WARN}"/>
-  <logger name="org.hibernate.type.descriptor.sql" level="${LOG_LEVEL_SQL_BIND:-WARN}"/>
 
   <root level="${LOG_LEVEL_ROOT:-INFO}">
     <appender-ref ref="CONSOLE"/>
