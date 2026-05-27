@@ -1,0 +1,284 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > StoreController</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.pricetracker.controller</a>
+</div>
+
+<h1>Coverage Summary for Class: StoreController (com.pricetracker.controller)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">StoreController</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (10/10)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (8/8)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (25/25)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.pricetracker.controller;
+&nbsp;
+&nbsp;import com.pricetracker.dto.StoreDto;
+&nbsp;import com.pricetracker.service.StoreService;
+&nbsp;import io.swagger.v3.oas.annotations.Operation;
+&nbsp;import io.swagger.v3.oas.annotations.Parameter;
+&nbsp;import io.swagger.v3.oas.annotations.media.Content;
+&nbsp;import io.swagger.v3.oas.annotations.media.Schema;
+&nbsp;import io.swagger.v3.oas.annotations.responses.ApiResponse;
+&nbsp;import io.swagger.v3.oas.annotations.responses.ApiResponses;
+&nbsp;import io.swagger.v3.oas.annotations.tags.Tag;
+&nbsp;import jakarta.validation.Valid;
+&nbsp;import java.net.URI;
+&nbsp;import java.util.HashMap;
+&nbsp;import java.util.List;
+&nbsp;import java.util.Map;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import org.springframework.http.ResponseEntity;
+&nbsp;import org.springframework.web.bind.annotation.DeleteMapping;
+&nbsp;import org.springframework.web.bind.annotation.GetMapping;
+&nbsp;import org.springframework.web.bind.annotation.PathVariable;
+&nbsp;import org.springframework.web.bind.annotation.PostMapping;
+&nbsp;import org.springframework.web.bind.annotation.PutMapping;
+&nbsp;import org.springframework.web.bind.annotation.RequestBody;
+&nbsp;import org.springframework.web.bind.annotation.RequestMapping;
+&nbsp;import org.springframework.web.bind.annotation.RequestParam;
+&nbsp;import org.springframework.web.bind.annotation.RestController;
+&nbsp;
+&nbsp;@Tag(name = &quot;Stores&quot;, description = &quot;Store management endpoints&quot;)
+&nbsp;@RestController
+&nbsp;@RequestMapping(&quot;/api/stores&quot;)
+<b class="fc">&nbsp;@RequiredArgsConstructor</b>
+&nbsp;public class StoreController {
+&nbsp;
+&nbsp;  private final StoreService storeService;
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Get all stores&quot;, description = &quot;Returns a list of all stores&quot;)
+&nbsp;  @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Stores retrieved successfully&quot;)
+&nbsp;  @GetMapping
+&nbsp;  public ResponseEntity&lt;List&lt;StoreDto&gt;&gt; getAllStores() {
+<b class="fc">&nbsp;    return ResponseEntity.ok(storeService.getAllStores());</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Get store by ID&quot;, description = &quot;Returns a single store by its ID&quot;)
+&nbsp;  @ApiResponses(value = {
+&nbsp;      @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Store found&quot;,
+&nbsp;          content = @Content(schema = @Schema(implementation = StoreDto.class))),
+&nbsp;      @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Store not found&quot;)
+&nbsp;  })
+&nbsp;  @GetMapping(&quot;/{id}&quot;)
+&nbsp;  public ResponseEntity&lt;StoreDto&gt; getStoreById(
+&nbsp;      @Parameter(description = &quot;Store ID&quot;, example = &quot;1&quot;, required = true)
+&nbsp;      @PathVariable Long id) {
+<b class="fc">&nbsp;    return ResponseEntity.ok(storeService.getStoreById(id));</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Get store by name&quot;, description = &quot;Returns a single store by its name&quot;)
+&nbsp;  @ApiResponses(value = {
+&nbsp;      @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Store found&quot;,
+&nbsp;          content = @Content(schema = @Schema(implementation = StoreDto.class))),
+&nbsp;      @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Store not found&quot;)
+&nbsp;  })
+&nbsp;  @GetMapping(&quot;/name/{name}&quot;)
+&nbsp;  public ResponseEntity&lt;StoreDto&gt; getStoreByName(
+&nbsp;      @Parameter(description = &quot;Store name&quot;, example = &quot;Amazon&quot;, required = true)
+&nbsp;      @PathVariable String name) {
+<b class="fc">&nbsp;    return ResponseEntity.ok(storeService.getStoreByName(name));</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Search stores by name&quot;, description = &quot;Search stores by name pattern (case-insensitive)&quot;)
+&nbsp;  @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Search completed successfully&quot;)
+&nbsp;  @GetMapping(&quot;/search&quot;)
+&nbsp;  public ResponseEntity&lt;List&lt;StoreDto&gt;&gt; searchStores(
+&nbsp;      @Parameter(description = &quot;Search query (name pattern)&quot;, example = &quot;Amazon&quot;, required = true)
+&nbsp;      @RequestParam String query) {
+<b class="fc">&nbsp;    return ResponseEntity.ok(storeService.searchStoresByName(query));</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Create a new store&quot;, description = &quot;Creates a new store with the provided data&quot;)
+&nbsp;  @ApiResponses(value = {
+&nbsp;      @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Store created successfully&quot;,
+&nbsp;          content = @Content(schema = @Schema(implementation = StoreDto.class))),
+&nbsp;      @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;),
+&nbsp;      @ApiResponse(responseCode = &quot;409&quot;, description = &quot;Store with same name or URL already exists&quot;)
+&nbsp;  })
+&nbsp;  @PostMapping
+&nbsp;  public ResponseEntity&lt;StoreDto&gt; createStore(
+&nbsp;      @Parameter(description = &quot;Store data&quot;, required = true)
+&nbsp;      @Valid @RequestBody StoreDto storeDto) {
+<b class="fc">&nbsp;    StoreDto created = storeService.createStore(storeDto);</b>
+<b class="fc">&nbsp;    return ResponseEntity</b>
+<b class="fc">&nbsp;        .created(URI.create(&quot;/api/stores/&quot; + created.id()))</b>
+<b class="fc">&nbsp;        .body(created);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Update a store&quot;, description = &quot;Updates an existing store&quot;)
+&nbsp;  @ApiResponses(value = {
+&nbsp;      @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Store updated successfully&quot;,
+&nbsp;          content = @Content(schema = @Schema(implementation = StoreDto.class))),
+&nbsp;      @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Store not found&quot;),
+&nbsp;      @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;),
+&nbsp;      @ApiResponse(responseCode = &quot;409&quot;, description = &quot;Store with new name or URL already exists&quot;)
+&nbsp;  })
+&nbsp;  @PutMapping(&quot;/{id}&quot;)
+&nbsp;  public ResponseEntity&lt;StoreDto&gt; updateStore(
+&nbsp;      @Parameter(description = &quot;Store ID&quot;, example = &quot;1&quot;, required = true)
+&nbsp;      @PathVariable Long id,
+&nbsp;      @Parameter(description = &quot;Updated store data&quot;, required = true)
+&nbsp;      @Valid @RequestBody StoreDto storeDto) {
+<b class="fc">&nbsp;    return ResponseEntity.ok(storeService.updateStore(id, storeDto));</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Delete a store&quot;, description = &quot;Deletes a store by its ID (only if no price history records exist)&quot;)
+&nbsp;  @ApiResponses(value = {
+&nbsp;      @ApiResponse(responseCode = &quot;204&quot;, description = &quot;Store deleted successfully&quot;),
+&nbsp;      @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Store not found&quot;),
+&nbsp;      @ApiResponse(responseCode = &quot;409&quot;, description = &quot;Cannot delete store with associated price history&quot;)
+&nbsp;  })
+&nbsp;  @DeleteMapping(&quot;/{id}&quot;)
+&nbsp;  public ResponseEntity&lt;Void&gt; deleteStore(
+&nbsp;      @Parameter(description = &quot;Store ID&quot;, example = &quot;1&quot;, required = true)
+&nbsp;      @PathVariable Long id) {
+<b class="fc">&nbsp;    storeService.deleteStore(id);</b>
+<b class="fc">&nbsp;    return ResponseEntity.noContent().build();</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Get price history count&quot;, description = &quot;Returns the number of price history records for a store&quot;)
+&nbsp;  @ApiResponses(value = {
+&nbsp;      @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Count retrieved successfully&quot;),
+&nbsp;      @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Store not found&quot;)
+&nbsp;  })
+&nbsp;  @GetMapping(&quot;/{id}/history/count&quot;)
+&nbsp;  public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; getPriceHistoryCount(
+&nbsp;      @Parameter(description = &quot;Store ID&quot;, example = &quot;1&quot;, required = true)
+&nbsp;      @PathVariable Long id) {
+<b class="fc">&nbsp;    long count = storeService.getPriceHistoryCount(id);</b>
+<b class="fc">&nbsp;    StoreDto store = storeService.getStoreById(id);</b>
+&nbsp;
+<b class="fc">&nbsp;    Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</b>
+<b class="fc">&nbsp;    response.put(&quot;storeId&quot;, id);</b>
+<b class="fc">&nbsp;    response.put(&quot;storeName&quot;, store.name());</b>
+<b class="fc">&nbsp;    response.put(&quot;priceHistoryCount&quot;, count);</b>
+&nbsp;
+<b class="fc">&nbsp;    return ResponseEntity.ok(response);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Check store existence&quot;, description = &quot;Checks if a store exists by name or website URL&quot;)
+&nbsp;  @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Check completed successfully&quot;)
+&nbsp;  @GetMapping(&quot;/exists&quot;)
+&nbsp;  public ResponseEntity&lt;Map&lt;String, Boolean&gt;&gt; checkStoreExists(
+&nbsp;      @Parameter(description = &quot;Store name to check&quot;, example = &quot;Amazon&quot;)
+&nbsp;      @RequestParam(required = false) String name,
+&nbsp;      @Parameter(description = &quot;Website URL to check&quot;, example = &quot;https://www.amazon.com&quot;)
+&nbsp;      @RequestParam(required = false) String websiteUrl) {
+&nbsp;
+<b class="fc">&nbsp;    Map&lt;String, Boolean&gt; response = new HashMap&lt;&gt;();</b>
+&nbsp;
+<b class="fc">&nbsp;    if (name != null &amp;&amp; !name.isBlank()) {</b>
+<b class="fc">&nbsp;      response.put(&quot;nameExists&quot;, storeService.existsByName(name));</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    if (websiteUrl != null &amp;&amp; !websiteUrl.isBlank()) {</b>
+<b class="fc">&nbsp;      response.put(&quot;websiteUrlExists&quot;, storeService.existsByWebsiteUrl(websiteUrl));</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    return ResponseEntity.ok(response);</b>
+&nbsp;  }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-04-16 11:13</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,176 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > TransactionDemoController</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.pricetracker.controller</a>
+</div>
+
+<h1>Coverage Summary for Class: TransactionDemoController (com.pricetracker.controller)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">TransactionDemoController</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (5/5)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (15/15)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.pricetracker.controller;
+&nbsp;
+&nbsp;import com.pricetracker.dto.BulkProductCreateDto;
+&nbsp;import com.pricetracker.dto.ProductDto;
+&nbsp;import com.pricetracker.service.ProductService;
+&nbsp;import io.swagger.v3.oas.annotations.Operation;
+&nbsp;import io.swagger.v3.oas.annotations.tags.Tag;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import lombok.extern.slf4j.Slf4j;
+&nbsp;import org.springframework.http.ResponseEntity;
+&nbsp;import org.springframework.web.bind.annotation.*;
+&nbsp;
+&nbsp;import java.math.BigDecimal;
+&nbsp;import java.util.List;
+&nbsp;
+<b class="fc">&nbsp;@Slf4j</b>
+&nbsp;@Tag(name = &quot;Transaction Demo&quot;, description = &quot;Demonstrates @Transactional behavior&quot;)
+&nbsp;@RestController
+&nbsp;@RequestMapping(&quot;/api/demo/transactions&quot;)
+<b class="fc">&nbsp;@RequiredArgsConstructor</b>
+&nbsp;public class TransactionDemoController {
+&nbsp;
+&nbsp;  private final ProductService productService;
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Test bulk insert WITH transaction&quot;,
+&nbsp;      description = &quot;All products are saved or none if error occurs&quot;)
+&nbsp;  @PostMapping(&quot;/with-transaction&quot;)
+&nbsp;  public ResponseEntity&lt;String&gt; testWithTransaction() {
+<b class="fc">&nbsp;    BulkProductCreateDto bulkDto = createTestBulkData();</b>
+&nbsp;
+&nbsp;    try {
+<b class="fc">&nbsp;      List&lt;ProductDto&gt; results = productService.createProductsBulk(bulkDto);</b>
+<b class="fc">&nbsp;      return ResponseEntity.ok(String.format(</b>
+&nbsp;          &quot;SUCCESS WITH TRANSACTION: Created %d products. All saved or none!&quot;,
+<b class="fc">&nbsp;          results.size()</b>
+&nbsp;      ));
+&nbsp;    } catch (Exception e) {
+<b class="fc">&nbsp;      return ResponseEntity.status(500).body(</b>
+<b class="fc">&nbsp;          &quot;TRANSACTION ROLLBACK: Error occurred, no products were saved. Error: &quot; + e.getMessage()</b>
+&nbsp;      );
+&nbsp;    }
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Test bulk insert WITHOUT transaction&quot;,
+&nbsp;      description = &quot;Partial saves possible - some products may be saved before error&quot;)
+&nbsp;  @PostMapping(&quot;/without-transaction&quot;)
+&nbsp;  public ResponseEntity&lt;String&gt; testWithoutTransaction() {
+<b class="fc">&nbsp;    BulkProductCreateDto bulkDto = createTestBulkData();</b>
+&nbsp;
+&nbsp;    try {
+<b class="fc">&nbsp;      List&lt;ProductDto&gt; results = productService.createProductsBulkWithoutTransaction(bulkDto);</b>
+<b class="fc">&nbsp;      return ResponseEntity.ok(String.format(</b>
+&nbsp;          &quot;WITHOUT TRANSACTION: Created %d products BUT some may be partially saved!&quot;,
+<b class="fc">&nbsp;          results.size()</b>
+&nbsp;      ));
+&nbsp;    } catch (Exception e) {
+<b class="fc">&nbsp;      return ResponseEntity.status(500).body(</b>
+<b class="fc">&nbsp;          &quot;PARTIAL SAVE: Some products may have been saved before the error! Error: &quot; + e.getMessage()</b>
+&nbsp;      );
+&nbsp;    }
+&nbsp;  }
+&nbsp;
+&nbsp;  private BulkProductCreateDto createTestBulkData() {
+<b class="fc">&nbsp;    return new BulkProductCreateDto(List.of(</b>
+&nbsp;        new ProductDto(null, &quot;Product 1&quot;, new BigDecimal(&quot;100.00&quot;), &quot;First product&quot;, &quot;Electronics&quot;),
+&nbsp;        new ProductDto(null, &quot;Product 2&quot;, new BigDecimal(&quot;200.00&quot;), &quot;Second product&quot;, &quot;Electronics&quot;),
+&nbsp;        // Этот продукт вызовет ошибку (имя слишком короткое)
+&nbsp;        new ProductDto(null, &quot;P3&quot;, new BigDecimal(&quot;300.00&quot;), &quot;Invalid name&quot;, &quot;Electronics&quot;),
+&nbsp;        new ProductDto(null, &quot;Product 4&quot;, new BigDecimal(&quot;400.00&quot;), &quot;Fourth product&quot;, &quot;Electronics&quot;)
+&nbsp;    ));
+&nbsp;  }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-04-16 11:13</div>
+</div>
+</body>
+</html>

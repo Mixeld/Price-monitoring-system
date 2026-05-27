@@ -1,0 +1,271 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > CategoryService</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.pricetracker.service</a>
+</div>
+
+<h1>Coverage Summary for Class: CategoryService (com.pricetracker.service)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">CategoryService</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (11/11)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (8/8)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (55/55)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">CategoryService$$SpringCGLIB$$0</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (11/11)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (8/8)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (55/55)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.pricetracker.service;
+&nbsp;
+&nbsp;import com.pricetracker.dto.CategoryDto;
+&nbsp;import com.pricetracker.entity.Category;
+&nbsp;import com.pricetracker.entity.Product;
+&nbsp;import com.pricetracker.exception.DuplicateResourceException;
+&nbsp;import com.pricetracker.mapper.CategoryMapper;
+&nbsp;import com.pricetracker.repository.CategoryRepository;
+&nbsp;import jakarta.persistence.EntityNotFoundException;
+&nbsp;import java.util.List;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import lombok.extern.slf4j.Slf4j;
+&nbsp;import org.springframework.stereotype.Service;
+&nbsp;import org.springframework.transaction.annotation.Transactional;
+&nbsp;
+<b class="fc">&nbsp;@Slf4j</b>
+&nbsp;@Service
+<b class="fc">&nbsp;@RequiredArgsConstructor</b>
+&nbsp;public class CategoryService {
+&nbsp;
+&nbsp;  private static final String CATEGORY_NOT_FOUND_BY_ID = &quot;Category not found with id: &quot;;
+&nbsp;  private static final String CATEGORY_NOT_FOUND_BY_NAME = &quot;Category not found with name: &quot;;
+&nbsp;  private static final String CATEGORY_ALREADY_EXISTS = &quot;Category with name &#39;%s&#39; already exists&quot;;
+&nbsp;  private static final String CANNOT_DELETE_CATEGORY_WITH_PRODUCTS =
+&nbsp;      &quot;Cannot delete category &#39;%s&#39; because it has %d associated products. &quot;
+&nbsp;          +
+&nbsp;          &quot;Remove or reassign these products first.&quot;;
+&nbsp;
+&nbsp;  private final CategoryRepository categoryRepository;
+&nbsp;  private final CategoryMapper categoryMapper;
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public List&lt;CategoryDto&gt; getAllCategories() {
+<b class="fc">&nbsp;    log.debug(&quot;Getting all categories&quot;);</b>
+<b class="fc">&nbsp;    return categoryRepository.findAll().stream()</b>
+<b class="fc">&nbsp;        .map(categoryMapper::toDto)</b>
+<b class="fc">&nbsp;        .toList();</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public CategoryDto getCategoryById(Long id) {
+<b class="fc">&nbsp;    log.debug(&quot;Getting category by id: {}&quot;, id);</b>
+<b class="fc">&nbsp;    return categoryRepository.findById(id)</b>
+<b class="fc">&nbsp;        .map(categoryMapper::toDto)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new EntityNotFoundException(CATEGORY_NOT_FOUND_BY_ID + id));</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public CategoryDto getCategoryByName(String name) {
+<b class="fc">&nbsp;    log.debug(&quot;Getting category by name: {}&quot;, name);</b>
+<b class="fc">&nbsp;    return categoryRepository.findByName(name)</b>
+<b class="fc">&nbsp;        .map(categoryMapper::toDto)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new EntityNotFoundException(CATEGORY_NOT_FOUND_BY_NAME + name));</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional
+&nbsp;  public CategoryDto createCategory(CategoryDto dto) {
+<b class="fc">&nbsp;    log.debug(&quot;Creating new category with name: {}&quot;, dto.name());</b>
+&nbsp;
+<b class="fc">&nbsp;    if (categoryRepository.findByName(dto.name()).isPresent()) {</b>
+<b class="fc">&nbsp;      throw new DuplicateResourceException(</b>
+<b class="fc">&nbsp;          String.format(CATEGORY_ALREADY_EXISTS, dto.name()));</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    Category category = categoryMapper.toEntity(dto);</b>
+<b class="fc">&nbsp;    Category savedCategory = categoryRepository.save(category);</b>
+<b class="fc">&nbsp;    log.info(&quot;Category created successfully with id: {} and name: {}&quot;,</b>
+<b class="fc">&nbsp;        savedCategory.getId(), savedCategory.getName());</b>
+&nbsp;
+<b class="fc">&nbsp;    return categoryMapper.toDto(savedCategory);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional
+&nbsp;  public CategoryDto updateCategory(Long id, CategoryDto dto) {
+<b class="fc">&nbsp;    log.debug(&quot;Updating category with id: {}&quot;, id);</b>
+&nbsp;
+<b class="fc">&nbsp;    Category category = categoryRepository.findById(id)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new EntityNotFoundException(CATEGORY_NOT_FOUND_BY_ID + id));</b>
+&nbsp;
+<b class="fc">&nbsp;    if (!category.getName().equals(dto.name())</b>
+&nbsp;        &amp;&amp;
+<b class="fc">&nbsp;        categoryRepository.findByName(dto.name()).isPresent()) {</b>
+<b class="fc">&nbsp;      throw new IllegalArgumentException(</b>
+<b class="fc">&nbsp;          String.format(CATEGORY_ALREADY_EXISTS, dto.name()));</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    category.setName(dto.name());</b>
+<b class="fc">&nbsp;    log.info(&quot;Category updated successfully with id: {} -&gt; new name: {}&quot;, id, dto.name());</b>
+&nbsp;
+<b class="fc">&nbsp;    return categoryMapper.toDto(category);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional
+&nbsp;  public void deleteCategory(Long id) {
+<b class="fc">&nbsp;    log.debug(&quot;Deleting category with id: {}&quot;, id);</b>
+&nbsp;
+<b class="fc">&nbsp;    Category category = categoryRepository.findById(id)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new EntityNotFoundException(CATEGORY_NOT_FOUND_BY_ID + id));</b>
+&nbsp;
+<b class="fc">&nbsp;    if (!category.getProducts().isEmpty()) {</b>
+<b class="fc">&nbsp;      int productCount = category.getProducts().size();</b>
+<b class="fc">&nbsp;      log.warn(&quot;Cannot delete category with id: {} because it has {} associated products&quot;,</b>
+<b class="fc">&nbsp;          id, productCount);</b>
+<b class="fc">&nbsp;      throw new IllegalStateException(</b>
+<b class="fc">&nbsp;          String.format(CANNOT_DELETE_CATEGORY_WITH_PRODUCTS,</b>
+<b class="fc">&nbsp;              category.getName(), productCount));</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    categoryRepository.delete(category);</b>
+<b class="fc">&nbsp;    log.info(&quot;Category deleted successfully with id: {} and name: {}&quot;, id, category.getName());</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public boolean existsByName(String name) {
+<b class="fc">&nbsp;    return categoryRepository.findByName(name).isPresent();</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public List&lt;Long&gt; getProductIdsInCategory(Long categoryId) {
+<b class="fc">&nbsp;    log.debug(&quot;Getting product IDs for category: {}&quot;, categoryId);</b>
+&nbsp;
+<b class="fc">&nbsp;    Category category = categoryRepository.findById(categoryId)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new EntityNotFoundException(CATEGORY_NOT_FOUND_BY_ID + categoryId));</b>
+&nbsp;
+<b class="fc">&nbsp;    return category.getProducts().stream()</b>
+<b class="fc">&nbsp;        .map(Product::getId)</b>
+<b class="fc">&nbsp;        .toList();</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public long getProductCount(Long categoryId) {
+<b class="fc">&nbsp;    Category category = categoryRepository.findById(categoryId)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new EntityNotFoundException(CATEGORY_NOT_FOUND_BY_ID + categoryId));</b>
+&nbsp;
+<b class="fc">&nbsp;    return category.getProducts().size();</b>
+&nbsp;  }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-04-16 11:13</div>
+</div>
+</body>
+</html>

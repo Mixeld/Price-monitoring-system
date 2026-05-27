@@ -1,0 +1,153 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > OpenApiConfig</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.pricetracker</a>
+</div>
+
+<h1>Coverage Summary for Class: OpenApiConfig (com.pricetracker)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">OpenApiConfig</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (14/14)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">OpenApiConfig$$SpringCGLIB$$0</td>
+  </tr>
+  <tr>
+    <td class="name">OpenApiConfig$$SpringCGLIB$$FastClass$$0</td>
+  </tr>
+  <tr>
+    <td class="name">OpenApiConfig$$SpringCGLIB$$FastClass$$1</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (14/14)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.pricetracker;
+&nbsp;
+&nbsp;import io.swagger.v3.oas.models.OpenAPI;
+&nbsp;import io.swagger.v3.oas.models.info.Contact;
+&nbsp;import io.swagger.v3.oas.models.info.Info;
+&nbsp;import io.swagger.v3.oas.models.info.License;
+&nbsp;import io.swagger.v3.oas.models.servers.Server;
+&nbsp;import org.springframework.context.annotation.Bean;
+&nbsp;import org.springframework.context.annotation.Configuration;
+&nbsp;
+&nbsp;import java.util.List;
+&nbsp;
+&nbsp;@Configuration
+<b class="fc">&nbsp;public class OpenApiConfig {</b>
+&nbsp;
+&nbsp;  @Bean
+&nbsp;  public OpenAPI customOpenAPI() {
+<b class="fc">&nbsp;    return new OpenAPI()</b>
+<b class="fc">&nbsp;        .info(new Info()</b>
+<b class="fc">&nbsp;            .title(&quot;Price Tracker API&quot;)</b>
+<b class="fc">&nbsp;            .version(&quot;1.0&quot;)</b>
+<b class="fc">&nbsp;            .description(&quot;API for tracking product prices across different stores&quot;)</b>
+<b class="fc">&nbsp;            .contact(new Contact()</b>
+<b class="fc">&nbsp;                .name(&quot;Price Tracker Team&quot;)</b>
+<b class="fc">&nbsp;                .email(&quot;support@pricetracker.com&quot;))</b>
+<b class="fc">&nbsp;            .license(new License()</b>
+<b class="fc">&nbsp;                .name(&quot;Apache 2.0&quot;)</b>
+<b class="fc">&nbsp;                .url(&quot;http://springdoc.org&quot;)))</b>
+<b class="fc">&nbsp;        .servers(List.of(</b>
+<b class="fc">&nbsp;            new Server().url(&quot;http://localhost:8080&quot;).description(&quot;Development Server&quot;)</b>
+&nbsp;        ));
+&nbsp;  }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-04-16 11:13</div>
+</div>
+</body>
+</html>

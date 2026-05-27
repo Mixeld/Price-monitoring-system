@@ -1,0 +1,296 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > StoreService</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.pricetracker.service</a>
+</div>
+
+<h1>Coverage Summary for Class: StoreService (com.pricetracker.service)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">StoreService</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (12/12)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (28/28)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (65/65)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">StoreService$$SpringCGLIB$$0</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (12/12)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (28/28)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (65/65)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.pricetracker.service;
+&nbsp;
+&nbsp;import com.pricetracker.dto.StoreDto;
+&nbsp;import com.pricetracker.entity.PriceHistory;
+&nbsp;import com.pricetracker.entity.Store;
+&nbsp;import com.pricetracker.exception.DuplicateResourceException;
+&nbsp;import com.pricetracker.mapper.StoreMapper;
+&nbsp;import com.pricetracker.repository.PriceHistoryRepository;
+&nbsp;import com.pricetracker.repository.StoreRepository;
+&nbsp;import jakarta.persistence.EntityNotFoundException;
+&nbsp;import java.util.List;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import lombok.extern.slf4j.Slf4j;
+&nbsp;import org.springframework.stereotype.Service;
+&nbsp;import org.springframework.transaction.annotation.Transactional;
+&nbsp;
+<b class="fc">&nbsp;@Slf4j</b>
+&nbsp;@Service
+<b class="fc">&nbsp;@RequiredArgsConstructor</b>
+&nbsp;public class StoreService {
+&nbsp;
+&nbsp;  private static final String STORE_NOT_FOUND_BY_ID = &quot;Store not found with id: &quot;;
+&nbsp;  private static final String STORE_NOT_FOUND_BY_NAME = &quot;Store not found with name: &quot;;
+&nbsp;  private static final String STORE_ALREADY_EXISTS = &quot;Store with name &#39;%s&#39; already exists&quot;;
+&nbsp;  private static final String STORE_WITH_URL_ALREADY_EXISTS =
+&nbsp;      &quot;Store with website URL &#39;%s&#39; already exists&quot;;
+&nbsp;  private static final String CANNOT_DELETE_STORE_WITH_HISTORY =
+&nbsp;      &quot;Cannot delete store &#39;%s&#39; because it has %d price history records. &quot;
+&nbsp;          +
+&nbsp;          &quot;Delete these records first or reassign them to another store.&quot;;
+&nbsp;
+&nbsp;  private final StoreRepository storeRepository;
+&nbsp;  private final PriceHistoryRepository priceHistoryRepository;
+&nbsp;  private final StoreMapper storeMapper;
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public List&lt;StoreDto&gt; getAllStores() {
+<b class="fc">&nbsp;    log.debug(&quot;Fetching all stores&quot;);</b>
+<b class="fc">&nbsp;    return storeRepository.findAll().stream()</b>
+<b class="fc">&nbsp;        .map(storeMapper::toDto)</b>
+<b class="fc">&nbsp;        .toList();</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public StoreDto getStoreById(Long id) {
+<b class="fc">&nbsp;    log.debug(&quot;Fetching store by id: {}&quot;, id);</b>
+<b class="fc">&nbsp;    return storeRepository.findById(id)</b>
+<b class="fc">&nbsp;        .map(storeMapper::toDto)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new EntityNotFoundException(STORE_NOT_FOUND_BY_ID + id));</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public StoreDto getStoreByName(String name) {
+<b class="fc">&nbsp;    log.debug(&quot;Fetching store by name: {}&quot;, name);</b>
+<b class="fc">&nbsp;    return storeRepository.findByName(name)</b>
+<b class="fc">&nbsp;        .map(storeMapper::toDto)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new EntityNotFoundException(STORE_NOT_FOUND_BY_NAME + name));</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional
+&nbsp;  public StoreDto createStore(StoreDto dto) {
+<b class="fc">&nbsp;    log.debug(&quot;Creating new store with name: {}&quot;, dto.name());</b>
+&nbsp;
+<b class="fc">&nbsp;    if (storeRepository.findByName(dto.name()).isPresent()) {</b>
+<b class="fc">&nbsp;      throw new DuplicateResourceException(&quot;Store&quot;, &quot;name&quot;, dto.name());</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    if (dto.websiteUrl() != null &amp;&amp; !dto.websiteUrl().isBlank()</b>
+<b class="fc">&nbsp;        &amp;&amp; storeRepository.findByWebsiteUrl(dto.websiteUrl()).isPresent()) {</b>
+<b class="fc">&nbsp;      throw new DuplicateResourceException(&quot;Store&quot;, &quot;websiteUrl&quot;, dto.websiteUrl());</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    Store store = storeMapper.toEntity(dto);</b>
+<b class="fc">&nbsp;    Store savedStore = storeRepository.save(store);</b>
+<b class="fc">&nbsp;    log.info(&quot;Store created successfully with id: {} and name: {}&quot;,</b>
+<b class="fc">&nbsp;        savedStore.getId(), savedStore.getName());</b>
+&nbsp;
+<b class="fc">&nbsp;    return storeMapper.toDto(savedStore);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional
+&nbsp;  public StoreDto updateStore(Long id, StoreDto dto) {
+<b class="fc">&nbsp;    log.debug(&quot;Updating store with id: {}&quot;, id);</b>
+&nbsp;
+<b class="fc">&nbsp;    Store store = storeRepository.findById(id)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new EntityNotFoundException(STORE_NOT_FOUND_BY_ID + id));</b>
+&nbsp;
+<b class="fc">&nbsp;    if (!store.getName().equals(dto.name())</b>
+&nbsp;        &amp;&amp;
+<b class="fc">&nbsp;        storeRepository.findByName(dto.name()).isPresent()) {</b>
+<b class="fc">&nbsp;      throw new IllegalArgumentException(</b>
+<b class="fc">&nbsp;          String.format(STORE_ALREADY_EXISTS, dto.name()));</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    if (dto.websiteUrl() != null &amp;&amp; !dto.websiteUrl().isBlank()</b>
+&nbsp;        &amp;&amp;
+<b class="fc">&nbsp;        !dto.websiteUrl().equals(store.getWebsiteUrl())</b>
+&nbsp;        &amp;&amp;
+<b class="fc">&nbsp;        storeRepository.findByWebsiteUrl(dto.websiteUrl()).isPresent()) {</b>
+<b class="fc">&nbsp;      throw new IllegalArgumentException(</b>
+<b class="fc">&nbsp;          String.format(STORE_WITH_URL_ALREADY_EXISTS, dto.websiteUrl()));</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    store.setName(dto.name());</b>
+<b class="fc">&nbsp;    store.setWebsiteUrl(dto.websiteUrl());</b>
+&nbsp;
+<b class="fc">&nbsp;    log.info(&quot;Store updated successfully with id: {} -&gt; new name: {}&quot;, id, dto.name());</b>
+&nbsp;
+<b class="fc">&nbsp;    return storeMapper.toDto(store);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional
+&nbsp;  public void deleteStore(Long id) {
+<b class="fc">&nbsp;    log.debug(&quot;Deleting store with id: {}&quot;, id);</b>
+&nbsp;
+<b class="fc">&nbsp;    Store store = storeRepository.findById(id)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new EntityNotFoundException(STORE_NOT_FOUND_BY_ID + id));</b>
+&nbsp;
+<b class="fc">&nbsp;    List&lt;PriceHistory&gt; priceHistories = priceHistoryRepository.findByStoreIdOrderByDateRecordedDesc(</b>
+&nbsp;        id);
+<b class="fc">&nbsp;    if (!priceHistories.isEmpty()) {</b>
+<b class="fc">&nbsp;      int historyCount = priceHistories.size();</b>
+<b class="fc">&nbsp;      log.warn(&quot;Cannot delete store with id: {} because it has {} price history records&quot;,</b>
+<b class="fc">&nbsp;          id, historyCount);</b>
+<b class="fc">&nbsp;      throw new IllegalStateException(</b>
+<b class="fc">&nbsp;          String.format(CANNOT_DELETE_STORE_WITH_HISTORY,</b>
+<b class="fc">&nbsp;              store.getName(), historyCount));</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    storeRepository.delete(store);</b>
+<b class="fc">&nbsp;    log.info(&quot;Store deleted successfully with id: {}&quot;, id);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public boolean existsByName(String name) {
+<b class="fc">&nbsp;    return storeRepository.findByName(name).isPresent();</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public boolean existsByWebsiteUrl(String websiteUrl) {
+<b class="fc">&nbsp;    if (websiteUrl == null || websiteUrl.isBlank()) {</b>
+<b class="fc">&nbsp;      return false;</b>
+&nbsp;    }
+<b class="fc">&nbsp;    return storeRepository.findByWebsiteUrl(websiteUrl).isPresent();</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public List&lt;StoreDto&gt; searchStoresByName(String namePattern) {
+<b class="fc">&nbsp;    log.debug(&quot;Searching stores by name pattern: {}&quot;, namePattern);</b>
+<b class="fc">&nbsp;    return storeRepository.findByNameContainingIgnoreCase(namePattern).stream()</b>
+<b class="fc">&nbsp;        .map(storeMapper::toDto)</b>
+<b class="fc">&nbsp;        .toList();</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public long getPriceHistoryCount(Long storeId) {
+<b class="fc">&nbsp;    if (!storeRepository.existsById(storeId)) {</b>
+<b class="fc">&nbsp;      throw new EntityNotFoundException(STORE_NOT_FOUND_BY_ID + storeId);</b>
+&nbsp;    }
+<b class="fc">&nbsp;    return priceHistoryRepository.countByStoreId(storeId);</b>
+&nbsp;  }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-04-16 11:13</div>
+</div>
+</body>
+</html>

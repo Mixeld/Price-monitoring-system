@@ -1,0 +1,250 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > SearchCache</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.pricetracker.service.cache</a>
+</div>
+
+<h1>Coverage Summary for Class: SearchCache (com.pricetracker.service.cache)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">SearchCache</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (11/11)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (18/18)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">SearchCache$SearchKey</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (9/9)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    97.8%
+  </span>
+  <span class="absValue">
+    (45/46)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (9/9)
+  </span>
+</td>
+  </tr>
+  <tr>
+    <td class="name">SearchCache$SearchKey$SearchKeyBuilder</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (21/21)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    97.9%
+  </span>
+  <span class="absValue">
+    (47/48)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (28/28)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.pricetracker.service.cache;
+&nbsp;
+&nbsp;import com.pricetracker.dto.ProductDto;
+&nbsp;import lombok.Builder;
+&nbsp;import lombok.Data;
+&nbsp;import lombok.extern.slf4j.Slf4j;
+&nbsp;import org.springframework.data.domain.Page;
+&nbsp;import org.springframework.stereotype.Component;
+&nbsp;
+&nbsp;import java.math.BigDecimal;
+&nbsp;import java.util.Map;
+&nbsp;import java.util.Optional;
+&nbsp;import java.util.Set;
+&nbsp;import java.util.concurrent.ConcurrentHashMap;
+&nbsp;
+<b class="fc">&nbsp;@Slf4j</b>
+&nbsp;@Component
+<b class="fc">&nbsp;public class SearchCache {</b>
+&nbsp;
+<b class="fc">&nbsp;  private final Map&lt;SearchKey, Page&lt;ProductDto&gt;&gt; cache = new ConcurrentHashMap&lt;&gt;();</b>
+&nbsp;
+&nbsp;  public Optional&lt;Page&lt;ProductDto&gt;&gt; get(SearchKey key) {
+<b class="fc">&nbsp;    return Optional.ofNullable(cache.get(key));</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  public void put(SearchKey key, Page&lt;ProductDto&gt; value) {
+<b class="fc">&nbsp;    cache.put(key, value);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  public void invalidateAll() {
+<b class="fc">&nbsp;    int sizeBefore = cache.size();</b>
+<b class="fc">&nbsp;    cache.clear();</b>
+<b class="fc">&nbsp;    log.info(&quot;Cache invalidated. Size before: {}, Size after: 0&quot;, sizeBefore);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  public void invalidateByCategory(String category) {
+<b class="fc">&nbsp;    int sizeBefore = cache.size();</b>
+<b class="fc">&nbsp;    cache.keySet().removeIf(key -&gt;</b>
+<b class="fc">&nbsp;        category != null &amp;&amp; category.equals(key.getCategory())</b>
+&nbsp;    );
+<b class="fc">&nbsp;    int sizeAfter = cache.size();</b>
+<b class="fc">&nbsp;    log.info(&quot;Cache invalidated for category: {}. Size before: {}, Size after: {}&quot;,</b>
+<b class="fc">&nbsp;        category, sizeBefore, sizeAfter);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  public int getSize() {
+<b class="fc">&nbsp;    return cache.size();</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  public Set&lt;SearchKey&gt; getKeys() {
+<b class="fc">&nbsp;    return cache.keySet();</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  public boolean containsKey(SearchKey key) {
+<b class="fc">&nbsp;    return cache.containsKey(key);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  public void clear() {
+<b class="fc">&nbsp;    cache.clear();</b>
+&nbsp;  }
+&nbsp;
+<b class="pc">&nbsp;  @Data</b>
+<b class="fc">&nbsp;  @Builder</b>
+&nbsp;  public static class SearchKey {
+<b class="fc">&nbsp;    private final String category;</b>
+<b class="fc">&nbsp;    private final BigDecimal minPrice;</b>
+<b class="fc">&nbsp;    private final BigDecimal maxPrice;</b>
+<b class="fc">&nbsp;    private final int page;</b>
+<b class="fc">&nbsp;    private final int size;</b>
+<b class="fc">&nbsp;    private final String sort;</b>
+<b class="fc">&nbsp;    private final boolean useNative;</b>
+&nbsp;  }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-04-16 11:13</div>
+</div>
+</body>
+</html>

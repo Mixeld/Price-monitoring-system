@@ -1,0 +1,218 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > CategoryController</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.pricetracker.controller</a>
+</div>
+
+<h1>Coverage Summary for Class: CategoryController (com.pricetracker.controller)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">CategoryController</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (7/7)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (11/11)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.pricetracker.controller;
+&nbsp;
+&nbsp;import com.pricetracker.dto.CategoryDto;
+&nbsp;import com.pricetracker.service.CategoryService;
+&nbsp;import io.swagger.v3.oas.annotations.Operation;
+&nbsp;import io.swagger.v3.oas.annotations.Parameter;
+&nbsp;import io.swagger.v3.oas.annotations.media.Content;
+&nbsp;import io.swagger.v3.oas.annotations.media.Schema;
+&nbsp;import io.swagger.v3.oas.annotations.responses.ApiResponse;
+&nbsp;import io.swagger.v3.oas.annotations.responses.ApiResponses;
+&nbsp;import io.swagger.v3.oas.annotations.tags.Tag;
+&nbsp;import jakarta.validation.Valid;
+&nbsp;import java.net.URI;
+&nbsp;import java.util.List;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import org.springframework.http.ResponseEntity;
+&nbsp;import org.springframework.web.bind.annotation.DeleteMapping;
+&nbsp;import org.springframework.web.bind.annotation.GetMapping;
+&nbsp;import org.springframework.web.bind.annotation.PathVariable;
+&nbsp;import org.springframework.web.bind.annotation.PostMapping;
+&nbsp;import org.springframework.web.bind.annotation.PutMapping;
+&nbsp;import org.springframework.web.bind.annotation.RequestBody;
+&nbsp;import org.springframework.web.bind.annotation.RequestMapping;
+&nbsp;import org.springframework.web.bind.annotation.RestController;
+&nbsp;
+&nbsp;@Tag(name = &quot;Categories&quot;, description = &quot;Category management endpoints&quot;)
+&nbsp;@RestController
+&nbsp;@RequestMapping(&quot;/api/categories&quot;)
+<b class="fc">&nbsp;@RequiredArgsConstructor</b>
+&nbsp;public class CategoryController {
+&nbsp;
+&nbsp;  private final CategoryService categoryService;
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Get all categories&quot;, description = &quot;Returns a list of all categories&quot;)
+&nbsp;  @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Categories retrieved successfully&quot;)
+&nbsp;  @GetMapping
+&nbsp;  public ResponseEntity&lt;List&lt;CategoryDto&gt;&gt; getAllCategories() {
+<b class="fc">&nbsp;    return ResponseEntity.ok(categoryService.getAllCategories());</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Get category by ID&quot;, description = &quot;Returns a single category by its ID&quot;)
+&nbsp;  @ApiResponses(value = {
+&nbsp;      @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Category found&quot;,
+&nbsp;          content = @Content(schema = @Schema(implementation = CategoryDto.class))),
+&nbsp;      @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Category not found&quot;)
+&nbsp;  })
+&nbsp;  @GetMapping(&quot;/{id}&quot;)
+&nbsp;  public ResponseEntity&lt;CategoryDto&gt; getCategoryById(
+&nbsp;      @Parameter(description = &quot;Category ID&quot;, example = &quot;1&quot;, required = true)
+&nbsp;      @PathVariable Long id) {
+<b class="fc">&nbsp;    return ResponseEntity.ok(categoryService.getCategoryById(id));</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Get category by name&quot;, description = &quot;Returns a single category by its name&quot;)
+&nbsp;  @ApiResponses(value = {
+&nbsp;      @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Category found&quot;,
+&nbsp;          content = @Content(schema = @Schema(implementation = CategoryDto.class))),
+&nbsp;      @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Category not found&quot;)
+&nbsp;  })
+&nbsp;  @GetMapping(&quot;/name/{name}&quot;)
+&nbsp;  public ResponseEntity&lt;CategoryDto&gt; getCategoryByName(
+&nbsp;      @Parameter(description = &quot;Category name&quot;, example = &quot;Electronics&quot;, required = true)
+&nbsp;      @PathVariable String name) {
+<b class="fc">&nbsp;    return ResponseEntity.ok(categoryService.getCategoryByName(name));</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Create a new category&quot;, description = &quot;Creates a new category with the provided name&quot;)
+&nbsp;  @ApiResponses(value = {
+&nbsp;      @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Category created successfully&quot;,
+&nbsp;          content = @Content(schema = @Schema(implementation = CategoryDto.class))),
+&nbsp;      @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;),
+&nbsp;      @ApiResponse(responseCode = &quot;409&quot;, description = &quot;Category with same name already exists&quot;)
+&nbsp;  })
+&nbsp;  @PostMapping
+&nbsp;  public ResponseEntity&lt;CategoryDto&gt; createCategory(
+&nbsp;      @Parameter(description = &quot;Category data&quot;, required = true)
+&nbsp;      @Valid @RequestBody CategoryDto categoryDto) {
+<b class="fc">&nbsp;    CategoryDto created = categoryService.createCategory(categoryDto);</b>
+<b class="fc">&nbsp;    return ResponseEntity</b>
+<b class="fc">&nbsp;        .created(URI.create(&quot;/api/categories/&quot; + created.id()))</b>
+<b class="fc">&nbsp;        .body(created);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Update a category&quot;, description = &quot;Updates an existing category&quot;)
+&nbsp;  @ApiResponses(value = {
+&nbsp;      @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Category updated successfully&quot;,
+&nbsp;          content = @Content(schema = @Schema(implementation = CategoryDto.class))),
+&nbsp;      @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Category not found&quot;),
+&nbsp;      @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;),
+&nbsp;      @ApiResponse(responseCode = &quot;409&quot;, description = &quot;Category with new name already exists&quot;)
+&nbsp;  })
+&nbsp;  @PutMapping(&quot;/{id}&quot;)
+&nbsp;  public ResponseEntity&lt;CategoryDto&gt; updateCategory(
+&nbsp;      @Parameter(description = &quot;Category ID&quot;, example = &quot;1&quot;, required = true)
+&nbsp;      @PathVariable Long id,
+&nbsp;      @Parameter(description = &quot;Updated category data&quot;, required = true)
+&nbsp;      @Valid @RequestBody CategoryDto categoryDto) {
+<b class="fc">&nbsp;    return ResponseEntity.ok(categoryService.updateCategory(id, categoryDto));</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Operation(summary = &quot;Delete a category&quot;, description = &quot;Deletes a category by its ID (only if no products are associated)&quot;)
+&nbsp;  @ApiResponses(value = {
+&nbsp;      @ApiResponse(responseCode = &quot;204&quot;, description = &quot;Category deleted successfully&quot;),
+&nbsp;      @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Category not found&quot;),
+&nbsp;      @ApiResponse(responseCode = &quot;409&quot;, description = &quot;Cannot delete category with associated products&quot;)
+&nbsp;  })
+&nbsp;  @DeleteMapping(&quot;/{id}&quot;)
+&nbsp;  public ResponseEntity&lt;Void&gt; deleteCategory(
+&nbsp;      @Parameter(description = &quot;Category ID&quot;, example = &quot;1&quot;, required = true)
+&nbsp;      @PathVariable Long id) {
+<b class="fc">&nbsp;    categoryService.deleteCategory(id);</b>
+<b class="fc">&nbsp;    return ResponseEntity.noContent().build();</b>
+&nbsp;  }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-04-16 11:13</div>
+</div>
+</body>
+</html>

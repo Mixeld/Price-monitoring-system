@@ -1,0 +1,244 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > BaseService</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.pricetracker.service.base</a>
+</div>
+
+<h1>Coverage Summary for Class: BaseService (com.pricetracker.service.base)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">BaseService</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (18/18)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (51/51)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.pricetracker.service.base;
+&nbsp;
+&nbsp;import com.pricetracker.exception.DuplicateResourceException;
+&nbsp;import com.pricetracker.exception.ResourceNotFoundException;
+&nbsp;import java.util.List;
+&nbsp;import java.util.Optional;
+&nbsp;import java.util.function.BooleanSupplier;
+&nbsp;import java.util.function.Function;
+&nbsp;import lombok.extern.slf4j.Slf4j;
+&nbsp;import org.springframework.data.jpa.repository.JpaRepository;
+&nbsp;import org.springframework.transaction.annotation.Transactional;
+&nbsp;
+<b class="fc">&nbsp;@Slf4j</b>
+&nbsp;public abstract class BaseService&lt;E, D, I&gt; {
+&nbsp;
+&nbsp;  protected final JpaRepository&lt;E, I&gt; repository;
+&nbsp;  protected final String entityName;
+&nbsp;  protected final Function&lt;E, D&gt; toDto;
+&nbsp;  protected final Function&lt;D, E&gt; toEntity;
+&nbsp;
+&nbsp;  protected BaseService(JpaRepository&lt;E, I&gt; repository,
+&nbsp;      String entityName,
+&nbsp;      Function&lt;E, D&gt; toDto,
+<b class="fc">&nbsp;      Function&lt;D, E&gt; toEntity) {</b>
+<b class="fc">&nbsp;    this.repository = repository;</b>
+<b class="fc">&nbsp;    this.entityName = entityName;</b>
+<b class="fc">&nbsp;    this.toDto = toDto;</b>
+<b class="fc">&nbsp;    this.toEntity = toEntity;</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public List&lt;D&gt; getAll() {
+<b class="fc">&nbsp;    log.debug(&quot;Getting all {}s&quot;, entityName);</b>
+<b class="fc">&nbsp;    return repository.findAll().stream()</b>
+<b class="fc">&nbsp;        .map(toDto)</b>
+<b class="fc">&nbsp;        .toList();</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public D getById(I id) {
+<b class="fc">&nbsp;    log.debug(&quot;Getting {} by id: {}&quot;, entityName, id);</b>
+<b class="fc">&nbsp;    return findEntityById(id)</b>
+<b class="fc">&nbsp;        .map(toDto)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new ResourceNotFoundException(entityName, &quot;id&quot;, id));</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional
+&nbsp;  public D create(D dto) {
+<b class="fc">&nbsp;    log.debug(&quot;Creating new {} with data: {}&quot;, entityName, dto);</b>
+<b class="fc">&nbsp;    validateBeforeCreate(dto);</b>
+&nbsp;
+<b class="fc">&nbsp;    E entity = toEntity.apply(dto);</b>
+<b class="fc">&nbsp;    beforeSave(entity);</b>
+<b class="fc">&nbsp;    E savedEntity = repository.save(entity);</b>
+<b class="fc">&nbsp;    afterSave(savedEntity);</b>
+&nbsp;
+<b class="fc">&nbsp;    log.info(&quot;{} created successfully with id: {}&quot;, entityName, getIdValue(savedEntity));</b>
+<b class="fc">&nbsp;    return toDto.apply(savedEntity);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional
+&nbsp;  public D update(I id, D dto) {
+<b class="fc">&nbsp;    log.debug(&quot;Updating {} with id: {}&quot;, entityName, id);</b>
+&nbsp;
+<b class="fc">&nbsp;    E entity = findEntityById(id)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new ResourceNotFoundException(entityName, &quot;id&quot;, id));</b>
+&nbsp;
+<b class="fc">&nbsp;    validateBeforeUpdate(id, dto, entity);</b>
+<b class="fc">&nbsp;    updateEntity(entity, dto);</b>
+<b class="fc">&nbsp;    beforeUpdate(entity);</b>
+&nbsp;
+<b class="fc">&nbsp;    E savedEntity = repository.save(entity);</b>
+&nbsp;
+<b class="fc">&nbsp;    log.info(&quot;{} updated successfully with id: {}&quot;, entityName, id);</b>
+<b class="fc">&nbsp;    return toDto.apply(savedEntity);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional
+&nbsp;  public void delete(I id) {
+<b class="fc">&nbsp;    log.debug(&quot;Deleting {} with id: {}&quot;, entityName, id);</b>
+&nbsp;
+<b class="fc">&nbsp;    E entity = findEntityById(id)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new ResourceNotFoundException(entityName, &quot;id&quot;, id));</b>
+&nbsp;
+<b class="fc">&nbsp;    validateBeforeDelete(entity);</b>
+<b class="fc">&nbsp;    beforeDelete(entity);</b>
+<b class="fc">&nbsp;    repository.delete(entity);</b>
+<b class="fc">&nbsp;    afterDelete();</b>
+&nbsp;
+<b class="fc">&nbsp;    log.info(&quot;{} deleted successfully with id: {}&quot;, entityName, id);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @Transactional(readOnly = true)
+&nbsp;  public boolean existsById(I id) {
+<b class="fc">&nbsp;    return repository.existsById(id);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  protected Optional&lt;E&gt; findEntityById(I id) {
+<b class="fc">&nbsp;    return repository.findById(id);</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  protected void checkUnique(BooleanSupplier existsCheck, String fieldName, Object value) {
+<b class="fc">&nbsp;    if (existsCheck.getAsBoolean()) {</b>
+<b class="fc">&nbsp;      throw new DuplicateResourceException(entityName, fieldName, value);</b>
+&nbsp;    }
+&nbsp;  }
+&nbsp;
+&nbsp;  // Hook methods
+<b class="fc">&nbsp;  protected void validateBeforeCreate(D dto) {}</b>
+&nbsp;
+<b class="fc">&nbsp;  protected void validateBeforeUpdate(I id, D dto, E entity) {}</b>
+&nbsp;
+<b class="fc">&nbsp;  protected void validateBeforeDelete(E entity) {}</b>
+&nbsp;
+&nbsp;  protected abstract void updateEntity(E entity, D dto);
+&nbsp;
+<b class="fc">&nbsp;  protected void beforeSave(E entity) {}</b>
+&nbsp;
+<b class="fc">&nbsp;  protected void afterSave(E entity) {}</b>
+&nbsp;
+<b class="fc">&nbsp;  protected void beforeUpdate(E entity) {}</b>
+&nbsp;
+<b class="fc">&nbsp;  protected void beforeDelete(E entity) {}</b>
+&nbsp;
+<b class="fc">&nbsp;  protected void afterDelete() {}</b>
+&nbsp;
+&nbsp;  protected abstract I getIdValue(E entity);
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-04-16 11:13</div>
+</div>
+</body>
+</html>

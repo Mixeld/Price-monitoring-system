@@ -1,0 +1,197 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > ProductMapper</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.pricetracker.mapper</a>
+</div>
+
+<h1>Coverage Summary for Class: ProductMapper (com.pricetracker.mapper)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">ProductMapper</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (4/4)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (26/26)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (34/34)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.pricetracker.mapper;
+&nbsp;
+&nbsp;import com.pricetracker.dto.ProductDto;
+&nbsp;import com.pricetracker.entity.Product;
+&nbsp;import com.pricetracker.entity.Category;
+&nbsp;import com.pricetracker.repository.CategoryRepository;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import org.springframework.stereotype.Component;
+&nbsp;
+&nbsp;@Component
+<b class="fc">&nbsp;@RequiredArgsConstructor</b>
+&nbsp;public class ProductMapper {
+&nbsp;
+&nbsp;  private final CategoryRepository categoryRepository;
+&nbsp;
+&nbsp;  public ProductDto toDto(final Product product) {
+<b class="fc">&nbsp;    if (product == null) {</b>
+<b class="fc">&nbsp;      return null;</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    String categoryName = null;</b>
+<b class="fc">&nbsp;    if (product.getCategory() != null) {</b>
+<b class="fc">&nbsp;      categoryName = product.getCategory().getName();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // ВНИМАНИЕ: порядок параметров должен соответствовать record ProductDto
+&nbsp;    // ProductDto(Long id, String name, BigDecimal price, String description, String category)
+<b class="fc">&nbsp;    return new ProductDto(</b>
+<b class="fc">&nbsp;        product.getId(),           // id</b>
+<b class="fc">&nbsp;        product.getName(),         // name</b>
+<b class="fc">&nbsp;        product.getPrice(),        // price (BigDecimal)</b>
+<b class="fc">&nbsp;        product.getDescription(),  // description</b>
+&nbsp;        categoryName               // category
+&nbsp;    );
+&nbsp;  }
+&nbsp;
+&nbsp;  public Product toEntity(final ProductDto dto) {
+<b class="fc">&nbsp;    if (dto == null) {</b>
+<b class="fc">&nbsp;      return null;</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    Product product = new Product();</b>
+<b class="fc">&nbsp;    product.setId(dto.id());              // &lt;-- dto.id(), не dto.getId()</b>
+<b class="fc">&nbsp;    product.setName(dto.name());          // &lt;-- dto.name(), не dto.getName()</b>
+<b class="fc">&nbsp;    product.setDescription(dto.description());  // &lt;-- dto.description()</b>
+<b class="fc">&nbsp;    product.setPrice(dto.price());        // &lt;-- dto.price() с маленькой буквы, НЕ dto.Price()</b>
+&nbsp;
+&nbsp;    // Устанавливаем категорию, если она указана
+<b class="fc">&nbsp;    if (dto.category() != null &amp;&amp; !dto.category().isBlank()) {</b>
+<b class="fc">&nbsp;      Category category = categoryRepository.findByName(dto.category())</b>
+<b class="fc">&nbsp;          .orElseThrow(() -&gt; new RuntimeException(&quot;Category not found: &quot; + dto.category()));</b>
+<b class="fc">&nbsp;      product.setCategory(category);</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    return product;</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  public void updateEntity(final Product existing, final ProductDto dto) {
+<b class="fc">&nbsp;    if (dto == null || existing == null) {</b>
+&nbsp;      return;
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    if (dto.name() != null &amp;&amp; !dto.name().isBlank()) {</b>
+<b class="fc">&nbsp;      existing.setName(dto.name());</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    if (dto.price() != null) {</b>
+<b class="fc">&nbsp;      existing.setPrice(dto.price());</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    if (dto.description() != null) {</b>
+<b class="fc">&nbsp;      existing.setDescription(dto.description());</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    if (dto.category() != null &amp;&amp; !dto.category().isBlank()) {</b>
+<b class="fc">&nbsp;      Category category = categoryRepository.findByName(dto.category())</b>
+<b class="fc">&nbsp;          .orElseThrow(() -&gt; new RuntimeException(&quot;Category not found: &quot; + dto.category()));</b>
+<b class="fc">&nbsp;      existing.setCategory(category);</b>
+&nbsp;    }
+&nbsp;  }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-04-16 11:13</div>
+</div>
+</body>
+</html>

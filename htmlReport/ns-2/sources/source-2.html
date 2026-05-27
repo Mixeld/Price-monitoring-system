@@ -1,0 +1,270 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > DebugPriceHistoryController</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.pricetracker.controller</a>
+</div>
+
+<h1>Coverage Summary for Class: DebugPriceHistoryController (com.pricetracker.controller)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">DebugPriceHistoryController</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (7/7)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (14/14)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (80/80)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.pricetracker.controller;
+&nbsp;
+&nbsp;import com.pricetracker.entity.PriceHistory;
+&nbsp;import com.pricetracker.entity.Store;
+&nbsp;import com.pricetracker.repository.PriceHistoryRepository;
+&nbsp;import com.pricetracker.repository.StoreRepository;
+&nbsp;import java.util.List;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import lombok.extern.slf4j.Slf4j;
+&nbsp;import org.springframework.web.bind.annotation.GetMapping;
+&nbsp;import org.springframework.web.bind.annotation.PathVariable;
+&nbsp;import org.springframework.web.bind.annotation.RequestMapping;
+&nbsp;import org.springframework.web.bind.annotation.RestController;
+&nbsp;
+<b class="fc">&nbsp;@Slf4j</b>
+&nbsp;@RestController
+&nbsp;@RequestMapping(&quot;/api/debug/price-history&quot;)
+<b class="fc">&nbsp;@RequiredArgsConstructor</b>
+&nbsp;public class DebugPriceHistoryController {
+&nbsp;
+&nbsp;  private final PriceHistoryRepository priceHistoryRepository;
+&nbsp;  private final StoreRepository storeRepository;
+&nbsp;
+&nbsp;  @GetMapping(&quot;/nplus1/stores&quot;)
+&nbsp;  public List&lt;PriceHistory&gt; getPriceHistoryWithNPlus1() {
+<b class="fc">&nbsp;    log.info(&quot;\n&quot; + &quot;=&quot;.repeat(70));</b>
+<b class="fc">&nbsp;    log.info(&quot;ДЕМОНСТРАЦИЯ ПРОБЛЕМЫ N+1: PriceHistory -&gt; Store&quot;);</b>
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+&nbsp;
+<b class="fc">&nbsp;    List&lt;PriceHistory&gt; histories = priceHistoryRepository.findAll();</b>
+<b class="fc">&nbsp;    log.info(&quot;1-й запрос: получили {} записей истории цен&quot;, histories.size());</b>
+&nbsp;
+<b class="fc">&nbsp;    for (int i = 0; i &lt; histories.size(); i++) {</b>
+<b class="fc">&nbsp;      PriceHistory history = histories.get(i);</b>
+<b class="fc">&nbsp;      Store store = history.getStore();</b>
+&nbsp;
+<b class="fc">&nbsp;      if (store != null) {</b>
+<b class="fc">&nbsp;        log.info(&quot;Запрос #{}: загружаем магазин &#39;{}&#39; для записи истории #{}&quot;,</b>
+<b class="fc">&nbsp;            i + 2, store.getName(), history.getId());</b>
+&nbsp;      } else {
+<b class="fc">&nbsp;        log.info(&quot;Запрос #{}: магазин не указан для записи истории #{}&quot;,</b>
+<b class="fc">&nbsp;            i + 2, history.getId());</b>
+&nbsp;      }
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+<b class="fc">&nbsp;    log.info(&quot;ИТОГО: 1 (история) + {} (магазины) = {} запросов к БД&quot;,</b>
+<b class="fc">&nbsp;        histories.size(), histories.size() + 1);</b>
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+&nbsp;
+<b class="fc">&nbsp;    return histories;</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @GetMapping(&quot;/nplus1/stores/{storeId}/histories&quot;)
+&nbsp;  public Store getStoreWithHistoriesNPlus1(@PathVariable Long storeId) {
+<b class="fc">&nbsp;    log.info(&quot;\n&quot; + &quot;=&quot;.repeat(70));</b>
+<b class="fc">&nbsp;    log.info(&quot;ДЕМОНСТРАЦИЯ ПРОБЛЕМЫ N+1: Store -&gt; PriceHistory (через репозиторий)&quot;);</b>
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+&nbsp;
+<b class="fc">&nbsp;    Store store = storeRepository.findById(storeId)</b>
+<b class="fc">&nbsp;        .orElseThrow(() -&gt; new RuntimeException(&quot;Store not found&quot;));</b>
+<b class="fc">&nbsp;    log.info(&quot;1-й запрос: получили магазин &#39;{}&#39;&quot;, store.getName());</b>
+&nbsp;
+<b class="fc">&nbsp;    List&lt;PriceHistory&gt; histories = priceHistoryRepository.findByStoreIdOrderByDateRecordedDesc(</b>
+&nbsp;        storeId);
+<b class="fc">&nbsp;    log.info(&quot;2-й запрос: получили {} записей истории для магазина&quot;, histories.size());</b>
+&nbsp;
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+<b class="fc">&nbsp;    log.info(&quot;ИТОГО: минимум 2 запроса (магазин + история)&quot;);</b>
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+&nbsp;
+<b class="fc">&nbsp;    return store;</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @GetMapping(&quot;/nplus1/all-stores-with-histories&quot;)
+&nbsp;  public List&lt;Store&gt; getAllStoresWithHistoriesNPlus1() {
+<b class="fc">&nbsp;    log.info(&quot;\n&quot; + &quot;=&quot;.repeat(70));</b>
+<b class="fc">&nbsp;    log.info(&quot;ДЕМОНСТРАЦИЯ ПРОБЛЕМЫ N+1: Все Store -&gt; PriceHistory&quot;);</b>
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+&nbsp;
+<b class="fc">&nbsp;    List&lt;Store&gt; stores = storeRepository.findAll();</b>
+<b class="fc">&nbsp;    log.info(&quot;1-й запрос: получили {} магазинов&quot;, stores.size());</b>
+&nbsp;
+<b class="fc">&nbsp;    int totalQueries = 1;</b>
+<b class="fc">&nbsp;    for (int i = 0; i &lt; stores.size(); i++) {</b>
+<b class="fc">&nbsp;      Store store = stores.get(i);</b>
+&nbsp;
+<b class="fc">&nbsp;      List&lt;PriceHistory&gt; histories = priceHistoryRepository</b>
+<b class="fc">&nbsp;          .findByStoreIdOrderByDateRecordedDesc(store.getId());</b>
+&nbsp;
+<b class="fc">&nbsp;      log.info(&quot;Запрос #{}: магазин &#39;{}&#39; имеет {} записей истории&quot;,</b>
+<b class="fc">&nbsp;          i + 2, store.getName(), histories.size());</b>
+<b class="fc">&nbsp;      totalQueries++;</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+<b class="fc">&nbsp;    log.info(&quot;ИТОГО: 1 (все магазины) + {} (история каждого) = {} запросов к БД&quot;,</b>
+<b class="fc">&nbsp;        stores.size(), totalQueries);</b>
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+&nbsp;
+<b class="fc">&nbsp;    return stores;</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @GetMapping(&quot;/fixed/all-stores-with-histories&quot;)
+&nbsp;  public List&lt;Store&gt; getAllStoresWithHistoriesFixed() {
+<b class="fc">&nbsp;    log.info(&quot;\n&quot; + &quot;=&quot;.repeat(70));</b>
+<b class="fc">&nbsp;    log.info(&quot;РЕШЕНИЕ: EntityGraph для Store -&gt; PriceHistory&quot;);</b>
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+&nbsp;
+<b class="fc">&nbsp;    List&lt;Store&gt; stores = storeRepository.findAll();</b>
+&nbsp;
+<b class="fc">&nbsp;    log.info(&quot;Единственный запрос с JOIN: получили {} магазинов с историей цен&quot;, stores.size());</b>
+&nbsp;
+<b class="fc">&nbsp;    for (Store store : stores) {</b>
+<b class="fc">&nbsp;      int historyCount = store.getPriceHistories() != null</b>
+<b class="fc">&nbsp;          ? store.getPriceHistories().size()</b>
+<b class="fc">&nbsp;          : 0;</b>
+<b class="fc">&nbsp;      log.info(&quot;Магазин &#39;{}&#39; (история уже загружена: {} записей)&quot;,</b>
+<b class="fc">&nbsp;          store.getName(), historyCount);</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+<b class="fc">&nbsp;    log.info(&quot;ИТОГО: всего 1 запрос к БД!&quot;);</b>
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+&nbsp;
+<b class="fc">&nbsp;    return stores;</b>
+&nbsp;  }
+&nbsp;
+&nbsp;  @GetMapping(&quot;/fixed/stores&quot;)
+&nbsp;  public List&lt;PriceHistory&gt; getPriceHistoryFixed() {
+<b class="fc">&nbsp;    log.info(&quot;\n&quot; + &quot;=&quot;.repeat(70));</b>
+<b class="fc">&nbsp;    log.info(&quot;РЕШЕНИЕ ПРОБЛЕМЫ N+1: PriceHistory -&gt; Store с EntityGraph&quot;);</b>
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+&nbsp;
+<b class="fc">&nbsp;    List&lt;PriceHistory&gt; histories = priceHistoryRepository.findAll();</b>
+<b class="fc">&nbsp;    log.info(&quot;1 запрос с JOIN: получили {} записей истории цен с магазинами&quot;, histories.size());</b>
+&nbsp;
+<b class="fc">&nbsp;    for (int i = 0; i &lt; histories.size(); i++) {</b>
+<b class="fc">&nbsp;      PriceHistory history = histories.get(i);</b>
+<b class="fc">&nbsp;      Store store = history.getStore();</b>
+&nbsp;
+<b class="fc">&nbsp;      if (store != null) {</b>
+<b class="fc">&nbsp;        log.info(&quot;Магазин &#39;{}&#39; для записи истории #{} (уже загружен)&quot;,</b>
+<b class="fc">&nbsp;            store.getName(), history.getId());</b>
+&nbsp;      }
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+<b class="fc">&nbsp;    log.info(&quot;ИТОГО: всего 1 запрос к БД!&quot;);</b>
+<b class="fc">&nbsp;    log.info(&quot;=&quot;.repeat(70));</b>
+&nbsp;
+<b class="fc">&nbsp;    return histories;</b>
+&nbsp;  }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-04-16 11:13</div>
+</div>
+</body>
+</html>
