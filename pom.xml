@@ -53,6 +53,12 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- Actuator for healthcheck, metrics, etc. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- AOP for logging execution time -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -186,7 +192,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.2</version>
                 <configuration>
-                    <!-- КЛЮЧЕВОЕ: Позволяем JaCoCo подключаться к тестам -->
                     <argLine>${jacocoArgLine}</argLine>
                     <includes>
                         <include>**/*Test.java</include>
@@ -208,7 +213,6 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>3.2.2</version>
                 <configuration>
-                    <!-- КЛЮЧЕВОЕ: Позволяем JaCoCo подключаться к интеграционным тестам -->
                     <argLine>${jacocoArgLine}</argLine>
                     <includes>
                         <include>**/*IT.java</include>
@@ -231,7 +235,6 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.version}</version>
                 <executions>
-                    <!-- Подготовка агента JaCoCo -->
                     <execution>
                         <id>prepare-agent</id>
                         <goals>
@@ -241,7 +244,6 @@
                             <propertyName>jacocoArgLine</propertyName>
                         </configuration>
                     </execution>
-                    <!-- Генерация отчёта после тестов -->
                     <execution>
                         <id>report</id>
                         <phase>verify</phase>
@@ -256,7 +258,6 @@
                             </formats>
                         </configuration>
                     </execution>
-                    <!-- Проверка минимального покрытия (опционально) -->
                     <execution>
                         <id>check</id>
                         <goals>
@@ -279,6 +280,8 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Checkstyle -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>

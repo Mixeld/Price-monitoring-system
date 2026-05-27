@@ -19,18 +19,17 @@ public class PriceTrackerController {
 
   @Operation(summary = "Продемонстрировать Race Condition (50+ потоков)")
   @PostMapping("/race-condition/run")
-  public Map<String, Integer> runRaceDemo(
+  public Map<String, Object> runRaceDemo( // Изменен возвращаемый тип
       @Parameter(description = "Количество потоков", example = "100")
-      @RequestParam(defaultValue = "100") int threads) throws InterruptedException {
+      @RequestParam(defaultValue = "100") int threads) {
 
-    // 3. Запуск демонстрации Race Condition
-    return raceConditionDemoService.runDemo(threads);
+    // Вызываем правильный метод сервиса. Передаем 1000 итераций продаж на каждый поток
+    return raceConditionDemoService.demonstrateRaceCondition(threads, 1000);
   }
 
   @Operation(summary = "Endpoint для нагрузочного тестирования JMeter")
   @GetMapping("/load-test/ping")
   public Map<String, String> ping() {
-    // 4. Используется JMeter для замера пропускной способности этого метода
     return Map.of(
         "status", "UP",
         "timestamp", String.valueOf(System.currentTimeMillis())

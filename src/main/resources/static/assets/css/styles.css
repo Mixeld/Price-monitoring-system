@@ -1,0 +1,519 @@
+:root {
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  --font-display: system-ui, -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 0.95rem;
+  --text-lg: 1.1rem;
+  --text-xl: 1.4rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Тёмная тема */
+  --color-bg: #050815;
+  --color-surface: #0b1020;
+  --color-surface-2: #111827;
+  --color-border: #1f2937;
+  --color-divider: #111827;
+  --color-text: #e5e7eb;
+  --color-text-muted: #9ca3af;
+  --color-text-faint: #6b7280;
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-primary-highlight: rgba(59, 130, 246, 0.12);
+  --color-success: #4ade80;
+  --color-danger: #f97373;
+}
+
+/* Светлая тема */
+
+[data-theme="light"] {
+  --color-bg: #f3f4f6;
+  --color-surface: #ffffff;
+  --color-surface-2: #f9fafb;
+  --color-border: #e5e7eb;
+  --color-divider: #e5e7eb;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --color-text-faint: #9ca3af;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-highlight: rgba(37, 99, 235, 0.08);
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+}
+
+/* Базовая типографика */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+/* Sidebar */
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 240px;
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 45%, #020617 100%);
+  border-right: 1px solid #1d4ed8;
+  padding: var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.nav-link {
+  text-decoration: none;
+  color: rgba(241, 245, 249, 0.85);
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.6rem;
+  font-size: var(--text-sm);
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.nav-link:hover {
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.nav-link.is-active {
+  background: rgba(15, 23, 42, 0.75);
+  color: #e5e7eb;
+}
+
+.theme-toggle {
+  margin-top: auto;
+  border: 1px solid rgba(15, 23, 42, 0.55);
+  background: rgba(15, 23, 42, 0.72);
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  color: rgba(226, 232, 240, 0.9);
+}
+
+/* Main */
+
+.main {
+  margin-left: 240px;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  background: var(--color-bg);
+  min-height: 100vh;
+}
+
+.page-head h1 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-xl);
+}
+
+/* Панели */
+
+.panel {
+  background: var(--color-surface);
+  border-radius: 0.9rem;
+  border: 1px solid var(--color-border);
+  padding: var(--space-4);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.45);
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+/* Чипы */
+
+.chip {
+  font-size: var(--text-xs);
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+}
+
+.chip.positive {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.chip.negative {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* Кнопка "Отмена" в стиле чипа ошибки */
+
+.btn-cancel-chip {
+  background: var(--color-surface-2);
+  color: var(--color-danger);
+  border-radius: 999px;
+  border: 1px solid var(--color-danger);
+  padding: 0.5rem 1.2rem;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+/* KPI */
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+.kpi-card {
+  background: var(--color-surface);
+  border-radius: 0.9rem;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.35);
+}
+
+.kpi-label {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.kpi-value {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: 1.35rem;
+}
+
+/* Формы и фильтры */
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.form-field label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.form-field input,
+.form-field textarea {
+  padding: 0.45rem 0.8rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.form-field input:focus,
+.form-field textarea:focus {
+  outline: 1px solid var(--color-primary);
+}
+
+/* Кнопка "Показать" */
+
+.form-field-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: 0.35rem;
+}
+
+#products .panel {
+  margin-bottom: var(--space-4);
+}
+
+/* Кнопки */
+
+button {
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+  border-radius: 999px;
+  border: none;
+  padding: 0.6rem 1.6rem;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.btn-secondary {
+  background: var(--color-primary-highlight);
+  color: var(--color-primary);
+  border-radius: 999px;
+  border: none;
+  padding: 0.7rem 1.9rem;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  display: block;
+  width: 100%;
+}
+
+.btn-ghost {
+  background: transparent;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  padding: 0.6rem 1.6rem;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  color: var(--color-text-muted);
+}
+
+.btn-danger {
+  background: transparent;
+  border-radius: 999px;
+  border: 1px solid var(--color-danger);
+  padding: 0.4rem 0.9rem;
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+  cursor: pointer;
+}
+
+/* Таблицы */
+
+.table-panel .table-wrap {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.35);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+thead {
+  background: var(--color-surface-2);
+}
+
+th,
+td {
+  padding: 0.45rem 0.9rem;
+  border-bottom: 1px solid var(--color-divider);
+  text-align: left;
+}
+
+th {
+  font-weight: 500;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+tbody tr:hover {
+  background: var(--color-primary-highlight);
+}
+
+.product-row-selected {
+  background: rgba(59, 130, 246, 0.18);
+}
+
+/* Детали товара */
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.details-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.details-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.details-value {
+  font-size: var(--text-sm);
+}
+
+/* График */
+
+.chart-panel .chart-wrap {
+  height: 260px;
+}
+
+/* Модалка */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal.is-open {
+  display: flex;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.modal-dialog {
+  position: relative;
+  margin-top: 3rem;
+  width: 100%;
+  max-width: 520px;
+  background: var(--color-surface);
+  border-radius: 0.9rem;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.7);
+  padding: var(--space-4);
+  z-index: 1;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.modal-error {
+  margin: 0;
+  margin-top: 0.25rem;
+  font-size: var(--text-xs);
+  color: var(--color-danger);
+  min-height: 1em;
+}
+
+/* Адаптив */
+
+@media (max-width: 960px) {
+  .sidebar {
+    position: static;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .main {
+    margin-left: 0;
+  }
+
+  .nav {
+    flex-direction: row;
+  }
+
+  .filters-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal-dialog {
+    margin: 2rem 1rem 0;
+  }
+}

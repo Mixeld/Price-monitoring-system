@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <title>PriceTracker Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/assets/js/api-client.js" defer></script>
+  <script src="/assets/js/app.js" defer></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="logo">PriceTracker</div>
+    <nav class="nav">
+      <a href="#overview" class="nav-link is-active">Обзор</a>
+      <a href="#products" class="nav-link">Товары</a>
+      <a href="#categories" class="nav-link">Категории</a>
+      <a href="#stores" class="nav-link">Магазины</a>
+    </nav>
+    <button id="themeToggle" class="theme-toggle">Тема</button>
+  </aside>
+
+  <main class="main">
+    <section id="overview" class="page">
+      <div class="page-head">
+        <h1>Панель мониторинга цен</h1>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-label">Всего товаров</span>
+          <span class="kpi-value" id="kpiProducts">—</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Категорий</span>
+          <span class="kpi-value" id="kpiCategories">—</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Магазинов</span>
+          <span class="kpi-value" id="kpiStores">—</span>
+        </div>
+      </div>
+
+      <section class="panel chart-panel">
+        <div class="section-head">
+          <div>
+            <h2>График цен</h2>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="priceChart"></canvas>
+        </div>
+      </section>
+    </section>
+
+    <section id="products" class="page">
+      <div class="page-head">
+        <h1>Товары</h1>
+      </div>
+
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <h2>Фильтр по товарам</h2>
+          </div>
+          <span class="chip" id="productsStatus">Ожидание запроса</span>
+        </div>
+
+        <div class="filters-grid">
+          <div class="form-field">
+            <label for="productsFilterCategory">Название / категория</label>
+            <input id="productsFilterCategory" type="text" placeholder="Например, Electronics или iPhone" />
+          </div>
+          <div class="form-field">
+            <label for="productsFilterMinPrice">Мин. цена</label>
+            <input id="productsFilterMinPrice" type="number" step="0.01" min="0" />
+          </div>
+          <div class="form-field">
+            <label for="productsFilterMaxPrice">Макс. цена</label>
+            <input id="productsFilterMaxPrice" type="number" step="0.01" min="0" />
+          </div>
+          <div class="form-field form-field-actions">
+            <button id="productsApplyFilters" class="btn-secondary">Показать</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="section-head">
+          <div>
+            <h2>Список товаров</h2>
+          </div>
+          <div class="table-controls">
+            <span id="productsPageInfo">Страница 1 из 1</span>
+            <button id="productsPrevPage" class="btn-ghost">&larr;</button>
+            <button id="productsNextPage" class="btn-ghost">&rarr;</button>
+            <button id="newProductBtn" class="btn-primary">Добавить товар</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table id="productsTable">
+            <thead>
+            <tr>
+              <th data-sort-key="name">Наименование</th>
+              <th data-sort-key="category">Категория</th>
+              <th data-sort-key="price">Цена</th>
+              <th data-sort-key="description">Описание</th>
+            </tr>
+            </thead>
+            <tbody id="productsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" id="product-details">
+        <div class="section-head">
+          <div>
+            <h2>Карточка товара</h2>
+          </div>
+          <span class="chip" id="productDetailsStatus">Ожидание выбора</span>
+        </div>
+        <div id="productDetailsBody">
+          <p>Нажмите на строку в таблице товаров, чтобы увидеть подробности.</p>
+        </div>
+      </section>
+
+      <section class="panel table-panel" id="price-history-section">
+        <div class="section-head">
+          <div>
+            <h2>История цен</h2>
+          </div>
+          <span class="chip" id="priceHistoryStatus">Ожидание выбора товара</span>
+        </div>
+
+        <div class="table-wrap">
+          <table id="priceHistoryTable">
+            <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Цена</th>
+              <th>Магазин</th>
+            </tr>
+            </thead>
+            <tbody id="priceHistoryTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section id="categories" class="page">
+      <div class="page-head">
+        <h1>Категории</h1>
+      </div>
+
+      <section class="panel table-panel">
+        <div class="section-head">
+          <div>
+            <h2>Категории</h2>
+          </div>
+          <div class="table-controls">
+            <span class="chip" id="categoriesStatus">Загрузка…</span>
+            <button id="newCategoryBtn" class="btn-primary">Добавить категорию</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+            <tr>
+              <th>Название</th>
+            </tr>
+            </thead>
+            <tbody id="categoriesTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section id="stores" class="page">
+      <div class="page-head">
+        <h1>Магазины</h1>
+      </div>
+
+      <section class="panel table-panel">
+        <div class="section-head">
+          <div>
+            <h2>Магазины</h2>
+          </div>
+          <span class="chip" id="storesStatus">Загрузка…</span>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+            <tr>
+              <th>Название</th>
+              <th>Сайт</th>
+            </tr>
+            </thead>
+            <tbody id="storesTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <div id="productModal" class="modal" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h2>Новый товар</h2>
+          <button type="button" class="modal-close" aria-label="Закрыть">&times;</button>
+        </div>
+        <form id="productForm" class="modal-body">
+          <div class="modal-grid">
+            <div class="form-field">
+              <label for="modalProductName">Наименование</label>
+              <input id="modalProductName" name="name" type="text" required />
+            </div>
+            <div class="form-field">
+              <label for="modalProductCategory">Категория</label>
+              <input id="modalProductCategory" name="category" type="text" />
+            </div>
+            <div class="form-field">
+              <label for="modalProductPrice">Цена</label>
+              <input id="modalProductPrice" name="price" type="number" step="0.01" min="0" />
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="modalProductDescription">Описание</label>
+            <textarea id="modalProductDescription" name="description" rows="3"></textarea>
+          </div>
+          <p id="productFormError" class="modal-error" aria-live="polite"></p>
+          <div class="modal-footer">
+            <button type="submit" class="btn-primary">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="categoryModal" class="modal" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h2>Новая категория</h2>
+          <button type="button" class="modal-close" aria-label="Закрыть">&times;</button>
+        </div>
+        <form id="categoryForm" class="modal-body">
+          <div class="form-field">
+            <label for="modalCategoryName">Название категории</label>
+            <input id="modalCategoryName" name="name" type="text" required />
+          </div>
+
+          <p id="categoryFormError" class="modal-error" aria-live="polite"></p>
+
+          <div class="modal-footer">
+            <button type="button" class="btn-cancel-chip modal-close">Отмена</button>
+            <button type="submit" class="btn-primary">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -2,10 +2,10 @@
 <configuration>
 
   <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
-  <property name="LOG_PATH" value="${user.home}/IdeaProjects/logs"/>
-  <property name="MAX_FILE_SIZE" value="5KB"/>
-  <property name="MAX_HISTORY" value="30"/>
-  <property name="TOTAL_SIZE_CAP" value="1GB"/>
+  <property name="LOG_PATH" value="${LOG_PATH:-/app/logs}"/>
+  <property name="MAX_FILE_SIZE" value="${LOG_MAX_FILE_SIZE:-10MB}"/>
+  <property name="MAX_HISTORY" value="${LOG_MAX_HISTORY:-30}"/>
+  <property name="TOTAL_SIZE_CAP" value="${LOG_TOTAL_SIZE_CAP:-1GB}"/>
 
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
@@ -47,16 +47,16 @@
     </rollingPolicy>
   </appender>
 
-  <logger name="com.pricetracker" level="DEBUG"/>
-  <logger name="com.pricetracker.controller" level="INFO"/>
-  <logger name="com.pricetracker.service" level="DEBUG"/>
-  <logger name="com.pricetracker.repository" level="DEBUG"/>
-  <logger name="org.springframework" level="WARN"/>
-  <logger name="org.hibernate" level="WARN"/>
-  <logger name="org.hibernate.SQL" level="DEBUG"/>
-  <logger name="org.hibernate.type.descriptor.sql" level="TRACE"/>
+  <logger name="com.pricetracker" level="${LOG_LEVEL_APP:-DEBUG}"/>
+  <logger name="com.pricetracker.controller" level="${LOG_LEVEL_CONTROLLER:-INFO}"/>
+  <logger name="com.pricetracker.service" level="${LOG_LEVEL_SERVICE:-DEBUG}"/>
+  <logger name="com.pricetracker.repository" level="${LOG_LEVEL_REPOSITORY:-DEBUG}"/>
+  <logger name="org.springframework" level="${LOG_LEVEL_SPRING:-WARN}"/>
+  <logger name="org.hibernate" level="${LOG_LEVEL_HIBERNATE:-WARN}"/>
+  <logger name="org.hibernate.SQL" level="${LOG_LEVEL_SQL:-WARN}"/>
+  <logger name="org.hibernate.type.descriptor.sql" level="${LOG_LEVEL_SQL_BIND:-WARN}"/>
 
-  <root level="INFO">
+  <root level="${LOG_LEVEL_ROOT:-INFO}">
     <appender-ref ref="CONSOLE"/>
     <appender-ref ref="FILE"/>
     <appender-ref ref="ERROR_FILE"/>

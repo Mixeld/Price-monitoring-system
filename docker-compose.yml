@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16
+    container_name: pricetracker-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pricetracker}
+      POSTGRES_USER: ${POSTGRES_USER:-pricetracker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pricetracker}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pricetracker-app
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-pricetracker}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-pricetracker}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-pricetracker}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      LOG_PATH: /app/logs
+      JAVA_OPTS: -Xms256m -Xmx512m
+    ports:
+      - "8080:8080"
+    volumes:
+      - app_logs:/app/logs
+
+volumes:
+  postgres_data:
+  app_logs:
